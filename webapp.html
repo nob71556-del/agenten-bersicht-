@@ -1,0 +1,742 @@
+<title>FastFlow Fastenplaner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+/* Layout: App-Kopf mit Tab-Leiste, darunter je Tab eine Spalte aus Panels. */
+:root {
+  --bg: #f1f4f1; --panel: #ffffff; --ink: #12201d; --muted: #5d6b67; --line: #d6ddd9;
+  --eat: #0f766e; --eat-soft: #cfe9e5; --fast: #e4e8f3; --fast-ink: #3a4a8a; --warn: #b4531a; --ok: #2f7d32;
+  --f-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1614; --panel: #16221f; --ink: #e6efec; --muted: #94a5a0; --line: #2a3a36;
+    --eat: #3fc1b3; --eat-soft: #1c3f3a; --fast: #1f2740; --fast-ink: #9db0f0; --warn: #f0a070; --ok: #7cc97f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1614; --panel: #16221f; --ink: #e6efec; --muted: #94a5a0; --line: #2a3a36;
+  --eat: #3fc1b3; --eat-soft: #1c3f3a; --fast: #1f2740; --fast-ink: #9db0f0; --warn: #f0a070; --ok: #7cc97f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 40px;
+}
+main { max-width: 860px; margin: 0 auto; display: grid; gap: 16px; }
+h1, h2 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+h1 { font-size: 1.6rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.1rem; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; display: grid; gap: 12px; }
+.label { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.notice { font-size: 13px; padding: 10px 12px; border-radius: 8px; background: var(--eat-soft); color: var(--ink); display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.notice.warn { background: var(--panel); border: 1px solid var(--warn); }
+
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); }
+nav.tabs a { padding: 8px 12px; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500; }
+nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--eat); }
+
+.mode { display: inline-flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--eat); }
+.fasting .dot { background: var(--fast-ink); }
+.headline { font-family: var(--f-display); font-size: 1.45rem; line-height: 1.2; font-weight: 700; text-wrap: balance; }
+.bar { height: 12px; border-radius: 6px; background: var(--fast); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--fast-ink); width: 0; }
+.eating .bar { background: var(--eat-soft); }
+.eating .bar > i { background: var(--eat); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+.stat b { display: block; font-family: var(--f-mono); font-weight: 500; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.row label { display: grid; gap: 4px; }
+input[type="datetime-local"], input[type="time"], input[type="date"], input[type="number"] {
+  font: inherit; font-family: var(--f-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0;
+}
+input[type="number"] { width: 7em; }
+button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--eat); }
+button.primary { background: var(--eat); color: var(--panel); border-color: var(--eat); }
+button.link { background: none; border: none; padding: 0; color: var(--eat); text-decoration: underline; }
+button[aria-pressed="true"] { background: var(--eat-soft); border-color: var(--eat); }
+:focus-visible { outline: 2px solid var(--eat); outline-offset: 2px; }
+
+.week { display: grid; gap: 6px; }
+.wrow { display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 8px; }
+.wrow .d { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.wrow.today .d { color: var(--ink); font-weight: 500; }
+.track { position: relative; height: 22px; background: var(--fast); border-radius: 4px; overflow: hidden; }
+.seg { position: absolute; top: 0; bottom: 0; background: var(--eat); }
+.seg.cont-l { background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 4px, transparent 4px 8px); }
+.now { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--warn); }
+.axis { display: grid; grid-template-columns: 28px 1fr; gap: 8px; }
+.axis div { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; vertical-align: -1px; background: var(--c); }
+
+.rules { display: grid; }
+.rule { display: grid; grid-template-columns: 56px auto auto 1fr; gap: 8px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.rule:first-child { border-top: 0; }
+.rule .dn { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 700; }
+.rule label.t { display: grid; gap: 2px; font-size: 11px; color: var(--muted); }
+.rule .info { font-family: var(--f-mono); font-size: 12px; color: var(--muted); min-width: 0; }
+.rule .info b { color: var(--ink); font-weight: 500; }
+.rule.off .t, .rule.off .info { opacity: .45; }
+.tag { display: inline-block; padding: 1px 6px; border-radius: 4px; background: var(--eat-soft); color: var(--eat); font-size: 11px; }
+
+ul.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.hints li { font-size: 13px; padding: 8px 10px; border-radius: 6px; background: var(--bg); border-left: 3px solid var(--muted); }
+.hints li.warning { border-left-color: var(--warn); }
+.rem li { display: grid; grid-template-columns: 110px 1fr; gap: 2px 12px; font-size: 14px; }
+.rem .when, .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.rem .when { color: var(--muted); }
+.rem .b { grid-column: 2; color: var(--muted); font-size: 13px; }
+.sess li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.sess li:first-child { border-top: 0; }
+.sess .ok { color: var(--ok); } .sess .miss { color: var(--warn); }
+.sess .grow { flex: 1 1 200px; min-width: 0; }
+.sess details { flex-basis: 100%; }
+.sess summary { cursor: pointer; color: var(--eat); font-size: 13px; }
+.sess details .row { margin-top: 6px; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--bg); border-radius: 8px; padding: 12px; }
+.kpi b { display: block; font-family: var(--f-display); font-size: 1.5rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.kpi small { color: var(--muted); font-size: 12px; }
+.seg-ctrl { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.chartbox { overflow-x: auto; }
+svg.chart { width: 100%; min-width: 320px; height: auto; display: block; }
+svg.chart text { fill: var(--muted); font: 13px var(--f-mono); }
+svg.chart .grid { stroke: var(--line); stroke-width: 1; fill: none; }
+svg.chart .barr { fill: var(--eat); }
+svg.chart .target { stroke: var(--fast-ink); stroke-width: 2; stroke-dasharray: 4 3; fill: none; }
+svg.chart .trend { stroke: var(--eat); stroke-width: 2.5; fill: none; }
+svg.chart .pt { fill: var(--muted); }
+@media (max-width: 520px) { .rule { grid-template-columns: 56px 1fr 1fr; } .rule .info { grid-column: 1 / -1; } .rem li { grid-template-columns: 1fr; } .rem .b { grid-column: 1; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main>
+  <header>
+    <h1>FastFlow Fastenplaner</h1>
+    <p class="sub">Eigene Essenszeiten pro Wochentag, auch über Mitternacht. Verlauf, Auswertung, Gewicht und Erinnerungen.</p>
+  </header>
+  <div id="storeNotice" class="notice" hidden></div>
+  <nav class="tabs" aria-label="Bereiche">
+    <a href="#heute" data-tab="heute">Heute</a>
+    <a href="#plan" data-tab="plan">Plan</a>
+    <a href="#auswertung" data-tab="auswertung">Auswertung</a>
+    <a href="#gewicht" data-tab="gewicht">Gewicht</a>
+    <a href="#erinnerungen" data-tab="erinnerungen">Erinnerungen</a>
+  </nav>
+
+  <!-- HEUTE -->
+  <section data-view="heute" class="view">
+    <div style="display:grid;gap:16px">
+      <section class="panel status" id="status" aria-live="polite"></section>
+      <section class="panel">
+        <div class="row">
+          <label><span class="label">Zeit simulieren (nur Heute-Ansicht)</span><input type="datetime-local" id="simInput"></label>
+          <button id="simNow" type="button">Jetzt</button>
+          <button data-step="-60" type="button">−1 h</button>
+          <button data-step="60" type="button">+1 h</button>
+          <button data-step="-1440" type="button">−1 Tag</button>
+          <button data-step="1440" type="button">+1 Tag</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Woche</h2>
+        <div class="week" id="week"></div>
+        <div class="axis"><span></span><div><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>
+        <div class="legend"><span style="--c:var(--eat)">Essen</span><span style="--c:var(--fast)">Fasten</span><span style="--c:var(--warn)">Jetzt</span></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- PLAN -->
+  <section data-view="plan" class="view" hidden>
+    <section class="panel">
+      <h2>Tagesregeln</h2>
+      <div id="planNotice"></div>
+      <ul class="list hints" id="hints"></ul>
+      <p class="sub" style="margin:0">Ende vor oder gleich dem Start bedeutet: Das Fenster läuft in den Folgetag.</p>
+      <div class="rules" id="rules"></div>
+      <div class="row">
+        <button id="presetExample" type="button">Vorlage: Mo–Fr 08–14, Sa 17–02, So 16–22</button>
+        <button id="presetSame" type="button">Vorlage: alle Tage 12–20 Uhr</button>
+      </div>
+    </section>
+  </section>
+
+  <!-- AUSWERTUNG -->
+  <section data-view="auswertung" class="view" hidden>
+    <div style="display:grid;gap:16px">
+      <section class="panel">
+        <div class="row" style="justify-content:space-between">
+          <div class="seg-ctrl" id="periodCtrl" role="group" aria-label="Zeitraum">
+            <button type="button" data-period="week">Woche</button>
+            <button type="button" data-period="month">Monat</button>
+            <button type="button" data-period="year">Jahr</button>
+          </div>
+          <label class="row" style="align-items:center"><span class="label">Joker</span><input type="number" id="jokerInput" min="0" max="10" step="1"></label>
+        </div>
+        <div id="reportBody"></div>
+      </section>
+      <section class="panel">
+        <h2>Letzte Fastenphasen</h2>
+        <p class="sub" style="margin:0">Werden automatisch aus deinem Plan übernommen, sobald sie vorbei sind. Hast du früher gegessen, trag es hier ein.</p>
+        <ul class="list sess" id="sessions"></ul>
+        <div class="row">
+          <button id="demoBtn" type="button">Beispieldaten laden (14 Tage)</button>
+          <button id="clearBtn" type="button">Verlauf und Gewicht löschen</button>
+        </div>
+        <div id="clearConfirm" class="notice warn" hidden>
+          Wirklich alle Fastenphasen und Gewichtseinträge löschen?
+          <button id="clearYes" type="button">Ja, löschen</button>
+          <button id="clearNo" type="button">Abbrechen</button>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- GEWICHT -->
+  <section data-view="gewicht" class="view" hidden>
+    <section class="panel">
+      <h2>Gewicht</h2>
+      <form class="row" id="weightForm">
+        <label><span class="label">Datum</span><input type="date" id="wDate" required></label>
+        <label><span class="label">Kilogramm</span><input type="number" id="wKg" min="20" max="400" step="0.1" required></label>
+        <button class="primary" type="submit">Eintragen</button>
+      </form>
+      <p class="sub" style="margin:0">Die Linie zeigt den geglätteten Trend. Tagesschwankungen durch Wasser und Salz fallen so kaum ins Gewicht. In der iOS-App kommt das Gewicht automatisch aus Apple Health.</p>
+      <div id="weightBody"></div>
+    </section>
+  </section>
+
+  <!-- ERINNERUNGEN -->
+  <section data-view="erinnerungen" class="view" hidden>
+    <section class="panel">
+      <h2>Nächste Erinnerungen</h2>
+      <p class="sub" style="margin:0">Vorschau, wann die iOS-App dich erinnert. Diese Webseite selbst kann keine Mitteilungen senden.</p>
+      <div class="row">
+        <label><span class="label">Vorlauf vor Fensterende (min)</span><input type="number" id="leadInput" min="5" max="120" step="5" value="30"></label>
+      </div>
+      <ul class="list rem" id="reminders"></ul>
+    </section>
+  </section>
+</main>
+
+<script>
+// ================= Engine (Port der Swift-Engine) =================
+const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+const FULL = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+const dayIdx = d => (d.getDay() + 6) % 7;
+const clampM = m => Math.min(Math.max(m, 0), 1439);
+const R = {
+  start: r => clampM(r.start), end: r => clampM(r.end),
+  crosses: r => R.end(r) <= R.start(r),
+  dur: r => R.crosses(r) ? (1440 - R.start(r)) + R.end(r) : R.end(r) - R.start(r),
+  hours: r => Math.round(R.dur(r) / 60),
+};
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+function fastingAfter(plan, i) {
+  const r = plan[i]; if (!r.enabled) return null;
+  const endAbs = R.start(r) + R.dur(r);
+  for (let k = 1; k <= 7; k++) { const n = plan[(i + k) % 7]; if (n.enabled) return Math.max(0, k * 1440 + R.start(n) - endAbs); }
+  return null;
+}
+function badge(plan, i) { const f = fastingAfter(plan, i); return f === null ? '–' : Math.round(f / 60) + ':' + R.hours(plan[i]); }
+const at = (day, m) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), Math.floor(m / 60), m % 60, 0);
+function intervals(date, plan, from = -2, to = 8) {
+  const out = [];
+  for (let off = from; off <= to; off++) {
+    const day = addDays(date, off), i = dayIdx(day), r = plan[i];
+    if (!r.enabled) continue;
+    const s = at(day, R.start(r)), e = at(R.crosses(r) ? addDays(day, 1) : day, R.end(r));
+    if (e > s) out.push({ start: s, end: e, idx: i });
+  }
+  out.sort((a, b) => a.start - b.start);
+  const merged = [];
+  for (const it of out) {
+    const last = merged[merged.length - 1];
+    if (last && it.start <= last.end) last.end = new Date(Math.max(last.end, it.end)); else merged.push({ ...it });
+  }
+  return merged;
+}
+function fastingWindows(from, to, plan) {
+  if (to <= from) return [];
+  const days = Math.round((startOfDay(to) - startOfDay(from)) / 86400000);
+  const iv = intervals(from, plan, -2, days + 8), out = [];
+  for (let k = 0; k + 1 < iv.length; k++) {
+    if (iv[k].end >= from && iv[k + 1].start <= to) out.push({ start: iv[k].end, end: iv[k + 1].start });
+  }
+  return out;
+}
+const pad = n => String(n).padStart(2, '0');
+const hhmm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+const ddmm = d => pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.';
+const hoursText = m => { const h = Math.floor(m / 60), mm = m % 60; return h === 0 ? `${mm} min` : mm ? `${h} h ${mm} min` : `${h} h`; };
+function stage(h) {
+  if (h < 4) return 'Verdauung läuft (ca. 0–4 h)';
+  if (h < 12) return 'Körper nutzt Glykogenspeicher (ca. 4–12 h)';
+  if (h < 16) return 'Fettstoffwechsel nimmt zu (ca. 12–16 h)';
+  return 'Langes Fasten (16 h+)';
+}
+function resolve(date, plan) {
+  const iv = intervals(date, plan);
+  if (!iv.length) return null;
+  const active = iv.find(x => date >= x.start && date < x.end);
+  if (active) {
+    const endText = hhmm(active.end);
+    let sub;
+    if (active.end.toDateString() !== date.toDateString()) sub = `Dein Fenster läuft über Mitternacht bis ${DAYS[dayIdx(active.end)]} ${endText} Uhr.`;
+    else if (active.start < startOfDay(date)) sub = `Dein Übernacht-Fenster endet heute um ${endText} Uhr.`;
+    else { const p = fastingAfter(plan, active.idx); sub = p === null ? 'Genieße deine Mahlzeiten.' : `Genieße deine Mahlzeiten. Ab ${endText} Uhr startet eine ${hoursText(p)}-Fastenpause.`; }
+    return { mode: 'eating', start: active.start, end: active.end, stage: 'Essensfenster',
+      headline: `Essensfenster geöffnet bis ${endText} Uhr (${badge(plan, active.idx)})`, sub };
+  }
+  let prev = null, next = null;
+  for (const x of iv) { if (x.end <= date) prev = x; else if (x.start > date && !next) next = x; }
+  if (!prev || !next) return null;
+  return { mode: 'fasting', start: prev.end, end: next.start, stage: stage((date - prev.end) / 3600000),
+    headline: `Fastenphase seit ${hhmm(prev.end)} Uhr aktiv`,
+    sub: `Nächstes Essensfenster: ${DAYS[dayIdx(next.start)]} ${hhmm(next.start)} Uhr (in ${hoursText(Math.floor((next.start - date) / 60000))}).` };
+}
+function validate(plan) {
+  const on = plan.map((r, i) => i).filter(i => plan[i].enabled);
+  if (!on.length) return [{ sev: 'warning', day: -1, msg: 'Kein Tag aktiv. Aktiviere mindestens einen Wochentag.' }];
+  const nextOn = i => { for (let k = 1; k <= 7; k++) { const j = (i + k) % 7; if (plan[j].enabled) return j; } return -1; };
+  const out = [];
+  for (const i of on) {
+    const r = plan[i];
+    if (R.start(r) === R.end(r)) { out.push({ sev: 'warning', day: i, msg: `${FULL[i]}: Start und Ende sind gleich. Das ergibt 24 Stunden Essen.` }); continue; }
+    if (R.dur(r) > 720) out.push({ sev: 'info', day: i, msg: `${FULL[i]}: Essensfenster länger als 12 Stunden.` });
+    const p = fastingAfter(plan, i), n = nextOn(i);
+    if (p === 0) out.push({ sev: 'warning', day: i, msg: `${FULL[i]}: Fenster reicht bis in das Fenster von ${FULL[n]}. Beide werden zu einem Fenster zusammengelegt.` });
+    else if (p !== null && p < 720) out.push({ sev: 'info', day: i, msg: `${FULL[i]}: Nur ${hoursText(p)} Pause bis ${FULL[n]}.` });
+  }
+  return out.sort((a, b) => (a.sev === b.sev ? a.day - b.day : a.sev === 'warning' ? -1 : 1));
+}
+function plannedReminders(date, plan, lead, limit) {
+  const out = [];
+  for (const w of intervals(date, plan).filter(x => x.end > date)) {
+    if (w.start > date) out.push({ at: w.start, title: 'Essensfenster ist offen', body: `Dein Fenster läuft ${hoursText(Math.round((w.end - w.start) / 60000))}.` });
+    const warn = new Date(w.end - lead * 60000);
+    if (warn > date && warn > w.start) out.push({ at: warn, title: 'Essensfenster schließt bald', body: `Noch ${hoursText(lead)}, dann beginnt deine Fastenphase.` });
+  }
+  return out.sort((a, b) => a.at - b.at).slice(0, limit);
+}
+// ---- Verlauf, Serie, Auswertung, Gewicht ----
+const sEnd = s => Math.min(s.actualEnd ?? s.plannedEnd, s.plannedEnd);
+const sTarget = s => Math.floor((s.plannedEnd - s.start) / 60000);
+const sFasted = s => Math.max(0, Math.floor((sEnd(s) - s.start) / 60000));
+const sGoal = s => sFasted(s) >= sTarget(s);
+function streak(sessions, today, jokers) {
+  const byDay = new Map();
+  for (const s of sessions) { const k = startOfDay(new Date(s.plannedEnd)).getTime(); (byDay.get(k) || byDay.set(k, []).get(k)).push(s); }
+  if (!byDay.size) return { days: 0, used: 0, left: jokers };
+  const earliest = Math.min(...byDay.keys());
+  let day = startOfDay(today);
+  if (!byDay.has(day.getTime())) day = addDays(day, -1);
+  let count = 0, used = 0;
+  while (day.getTime() >= earliest) {
+    const e = byDay.get(day.getTime());
+    if (e) { if (e.every(sGoal)) count++; else if (used < jokers) { used++; count++; } else break; }
+    day = addDays(day, -1);
+  }
+  return { days: count, used, left: Math.max(0, jokers - used) };
+}
+function periodRange(period, now) {
+  if (period === 'week') { const s = addDays(startOfDay(now), -dayIdx(now)); return { start: s, end: addDays(s, 7) }; }
+  if (period === 'month') return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+  return { start: new Date(now.getFullYear(), 0, 1), end: new Date(now.getFullYear() + 1, 0, 1) };
+}
+function report(period, sessions, now, jokers) {
+  const r = periodRange(period, now);
+  const inP = sessions.filter(s => s.plannedEnd >= r.start.getTime() && s.plannedEnd < r.end.getTime() && s.plannedEnd <= now.getTime());
+  const sum = f => inP.reduce((a, s) => a + f(s), 0);
+  const st = streak(sessions, now, jokers);
+  const fasted = sum(sFasted) / 60, target = sum(sTarget) / 60;
+  return { fasted, target, long: sum(s => Math.max(0, sFasted(s) - 960)) / 60, n: inP.length, ok: inP.filter(sGoal).length, streak: st };
+}
+function buckets(period, sessions, now) {
+  const r = periodRange(period, now), byMonth = period === 'year';
+  const key = d => byMonth ? new Date(d.getFullYear(), d.getMonth(), 1).getTime() : startOfDay(d).getTime();
+  const f = new Map(), t = new Map();
+  for (const s of sessions) {
+    if (s.plannedEnd < r.start.getTime() || s.plannedEnd >= r.end.getTime()) continue;
+    const k = key(new Date(s.plannedEnd));
+    f.set(k, (f.get(k) || 0) + sFasted(s)); t.set(k, (t.get(k) || 0) + sTarget(s));
+  }
+  const out = [];
+  for (let c = r.start; c < r.end; c = byMonth ? new Date(c.getFullYear(), c.getMonth() + 1, 1) : addDays(c, 1)) {
+    out.push({ start: c, f: (f.get(c.getTime()) || 0) / 60, t: (t.get(c.getTime()) || 0) / 60 });
+  }
+  return out;
+}
+function emaTrend(weights, alpha = 0.1) {
+  const byDay = new Map();
+  for (const w of weights) { if (!(w.kg > 0)) continue; const k = startOfDay(new Date(w.date)).getTime(); (byDay.get(k) || byDay.set(k, []).get(k)).push(w.kg); }
+  let trend = null;
+  return [...byDay.keys()].sort((a, b) => a - b).map(k => {
+    const v = byDay.get(k), mean = v.reduce((a, b) => a + b, 0) / v.length;
+    trend = trend === null ? mean : trend + alpha * (mean - trend);
+    return { date: new Date(k), kg: mean, trend };
+  });
+}
+//--UI--
+// ================= Daten & Speicher =================
+const exampleRules = () => DAYS.map((_, i) => i === 5 ? { enabled: true, start: 1020, end: 120 } : i === 6 ? { enabled: true, start: 960, end: 1320 } : { enabled: true, start: 480, end: 840 });
+const sameRules = () => DAYS.map(() => ({ enabled: true, start: 720, end: 1200 }));
+const state = { plan: exampleRules(), planSaved: false, jokers: 2, sessions: [], weights: [], ready: false };
+const LS_KEY = 'fastflow-v2';
+
+const store = {
+  mode: 'local', col: null,
+  async init() {
+    let db = null, uid = null;
+    try {
+      if (window.claude?.use) {
+        const [d, u] = await Promise.all([claude.use('db'), claude.use('user')]);
+        db = d; uid = u ? await u.id() : null;
+      }
+    } catch (e) { db = null; }
+    if (db && uid) {
+      this.mode = 'db';
+      this.col = db.collection('data/users/' + uid);
+      let first = true;
+      const timer = setTimeout(() => { if (first) { this.fallback('Dein Konto antwortet gerade nicht. Gespeichert wird vorerst nur in diesem Browser.'); } }, 10000);
+      this.unsub = this.col.onSnapshot(snap => {
+        clearTimeout(timer);
+        const sessions = [], weights = [];
+        let planDoc = null;
+        for (const d of snap.docs) {
+          const v = d.data() || {};
+          if (d.id === 'plan') planDoc = v;
+          else if (v.kind === 'session') sessions.push({ id: d.id, start: v.start, plannedEnd: v.plannedEnd, actualEnd: v.actualEnd ?? null });
+          else if (v.kind === 'weight') weights.push({ id: d.id, date: v.date, kg: v.kg });
+        }
+        if (planDoc && Array.isArray(planDoc.rules) && planDoc.rules.length === 7) {
+          if (!pendingPlanSave) state.plan = planDoc.rules;
+          state.jokers = Number.isFinite(planDoc.jokers) ? planDoc.jokers : 2;
+          state.planSaved = true;
+        }
+        state.sessions = sessions.sort((a, b) => a.plannedEnd - b.plannedEnd);
+        state.weights = weights.sort((a, b) => a.date - b.date);
+        if (first) { first = false; state.ready = true; recordCompleted(); }
+        renderAll();
+      }, err => { clearTimeout(timer); this.fallback('Speichern im Konto ist gerade nicht möglich (' + (err?.code || 'Fehler') + '). Gespeichert wird vorerst nur in diesem Browser.'); });
+      showNotice(null);
+    } else {
+      this.fallback('Du bist nicht angemeldet oder diese Ansicht hat keinen Kontospeicher. Gespeichert wird nur in diesem Browser.');
+    }
+  },
+  fallback(msg) {
+    if (this.unsub) { try { this.unsub(); } catch (e) {} }
+    this.mode = 'local'; this.col = null;
+    try {
+      const s = JSON.parse(localStorage.getItem(LS_KEY));
+      if (s && Array.isArray(s.plan) && s.plan.length === 7) { state.plan = s.plan; state.planSaved = !!s.planSaved; state.jokers = s.jokers ?? 2; state.sessions = s.sessions || []; state.weights = s.weights || []; }
+    } catch (e) {}
+    state.ready = true;
+    showNotice(msg);
+    recordCompleted();
+    renderAll();
+  },
+  saveLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ plan: state.plan, planSaved: state.planSaved, jokers: state.jokers, sessions: state.sessions, weights: state.weights })); } catch (e) {}
+  },
+  async savePlan() {
+    if (this.mode === 'db') await this.col.doc('plan').set({ rules: state.plan, jokers: state.jokers });
+    else this.saveLocal();
+  },
+  async putSession(s) {
+    if (this.mode === 'db') await this.col.doc(s.id).set({ kind: 'session', start: s.start, plannedEnd: s.plannedEnd, actualEnd: s.actualEnd ?? null });
+    else { const i = state.sessions.findIndex(x => x.id === s.id); if (i >= 0) state.sessions[i] = s; else state.sessions.push(s); state.sessions.sort((a, b) => a.plannedEnd - b.plannedEnd); this.saveLocal(); }
+  },
+  async putWeight(w) {
+    if (this.mode === 'db') await this.col.doc(w.id).set({ kind: 'weight', date: w.date, kg: w.kg });
+    else { const i = state.weights.findIndex(x => x.id === w.id); if (i >= 0) state.weights[i] = w; else state.weights.push(w); state.weights.sort((a, b) => a.date - b.date); this.saveLocal(); }
+  },
+  async remove(id) {
+    if (this.mode === 'db') await this.col.doc(id).delete();
+    else { state.sessions = state.sessions.filter(x => x.id !== id); state.weights = state.weights.filter(x => x.id !== id); this.saveLocal(); }
+  },
+};
+function showNotice(msg) { const el = $('storeNotice'); el.hidden = !msg; el.textContent = msg || ''; }
+
+let pendingPlanSave = null;
+function schedulePlanSave() {
+  state.planSaved = true;
+  clearTimeout(pendingPlanSave);
+  pendingPlanSave = setTimeout(async () => {
+    try { await store.savePlan(); } catch (e) { showNotice('Plan konnte nicht gespeichert werden: ' + (e?.message || e?.code || 'unbekannter Fehler')); }
+    pendingPlanSave = null;
+  }, 500);
+}
+
+/** Übernimmt beendete Fastenphasen aus dem Plan (höchstens 7 Tage zurück), erst wenn der Plan gespeichert ist. */
+let recording = false;
+async function recordCompleted() {
+  if (!state.planSaved || recording) return;
+  recording = true;
+  try {
+    const realNow = new Date();
+    const last = state.sessions.length ? Math.max(...state.sessions.map(s => s.plannedEnd)) : null;
+    const lookback = addDays(realNow, -7).getTime();
+    const from = new Date(Math.max(last ?? lookback, lookback));
+    const wins = fastingWindows(from, realNow, state.plan).filter(w => last === null || w.start.getTime() >= last);
+    for (const w of wins) await store.putSession({ id: 's_' + w.start.getTime(), start: w.start.getTime(), plannedEnd: w.end.getTime(), actualEnd: null });
+    if (wins.length && store.mode === 'local') renderAll();
+  } catch (e) { showNotice('Verlauf konnte nicht aktualisiert werden: ' + (e?.message || e?.code || 'unbekannter Fehler')); }
+  recording = false;
+}
+
+// ================= UI =================
+const $ = id => document.getElementById(id);
+const toM = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+const fmtM = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${hhmm(d)}`;
+const toDateInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+let now = new Date(); now.setSeconds(0, 0);
+let simulated = false;
+let period = 'week';
+
+function renderStatus() {
+  const snap = resolve(now, state.plan), el = $('status');
+  if (!snap) { el.className = 'panel status'; el.innerHTML = '<div class="headline">Kein aktiver Tag im Plan.</div><p class="sub">Aktiviere im Tab Plan mindestens einen Wochentag.</p>'; return; }
+  const total = snap.end - snap.start, done = now - snap.start;
+  const pct = Math.min(100, Math.max(0, done / total * 100));
+  const st = streak(state.sessions, new Date(), state.jokers);
+  el.className = 'panel status ' + snap.mode;
+  el.innerHTML = `
+    <div class="mode"><span class="dot"></span>${snap.mode === 'eating' ? 'Essensfenster' : 'Fasten'}${simulated ? ' · simuliert ' + DAYS[dayIdx(now)] + ' ' + ddmm(now) + ' ' + hhmm(now) : ''}</div>
+    <div class="headline">${snap.headline}</div>
+    <p class="sub" style="margin:0">${snap.sub}</p>
+    <div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
+    <div class="stats">
+      <div class="stat"><span class="label">Fortschritt</span><b>${Math.round(pct)} %</b></div>
+      <div class="stat"><span class="label">Vergangen</span><b>${hoursText(Math.floor(done / 60000))}</b></div>
+      <div class="stat"><span class="label">Verbleibend</span><b>${hoursText(Math.floor((snap.end - now) / 60000))}</b></div>
+      <div class="stat"><span class="label">Fenster</span><b>${DAYS[dayIdx(snap.start)]} ${hhmm(snap.start)} → ${DAYS[dayIdx(snap.end)]} ${hhmm(snap.end)}</b></div>
+      <div class="stat"><span class="label">Serie</span><b>${st.days} ${st.days === 1 ? 'Tag' : 'Tage'}</b></div>
+    </div>
+    <div class="stat"><span class="label">Phase</span><b style="font-family:var(--f-body)">${snap.stage}</b><span class="sub" style="font-size:12px">Richtwerte zur Orientierung, individuell verschieden. Keine medizinische Beratung.</span></div>`;
+}
+
+function renderWeek() {
+  const rows = [];
+  for (let i = 0; i < 7; i++) {
+    const day = addDays(now, i - dayIdx(now)), next = addDays(day, 1), span = next - day;
+    const segs = intervals(day, state.plan).map(iv => {
+      const s = Math.max(iv.start, day), e = Math.min(iv.end, next);
+      if (e <= s) return '';
+      return `<div class="seg${iv.start < day ? ' cont-l' : ''}" style="left:${(s - day) / span * 100}%;width:${(e - s) / span * 100}%"></div>`;
+    }).join('');
+    const isToday = day.toDateString() === now.toDateString();
+    const mark = isToday ? `<div class="now" style="left:${(now - day) / span * 100}%"></div>` : '';
+    rows.push(`<div class="wrow${isToday ? ' today' : ''}"><span class="d">${DAYS[i]}</span><div class="track">${segs}${mark}</div></div>`);
+  }
+  $('week').innerHTML = rows.join('');
+}
+
+function renderPlan() {
+  $('planNotice').innerHTML = state.planSaved
+    ? ''
+    : `<div class="notice">Das ist ein Beispielplan. Passe ihn an oder übernimm ihn so. Erst danach zeichnet FastFlow deine Fastenphasen auf. <button class="primary" type="button" id="adoptPlan">Plan übernehmen</button></div>`;
+  $('hints').innerHTML = validate(state.plan).map(h => `<li class="${h.sev}">${h.sev === 'warning' ? 'Achtung: ' : ''}${h.msg}</li>`).join('');
+  $('rules').innerHTML = state.plan.map((r, i) => {
+    const f = fastingAfter(state.plan, i);
+    const info = r.enabled
+      ? `<b>${badge(state.plan, i)}</b> Fasten:Essen · Fenster ${hoursText(R.dur(r))}${R.crosses(r) ? ' <span class="tag">über Mitternacht → ' + DAYS[(i + 1) % 7] + '</span>' : ''}${f !== null ? '<br>danach ' + hoursText(f) + ' Pause' : ''}`
+      : 'Kein Essensfenster (nur Fasten)';
+    return `<div class="rule${r.enabled ? '' : ' off'}">
+      <label class="dn"><input type="checkbox" id="en${i}" data-i="${i}" data-k="enabled" ${r.enabled ? 'checked' : ''}>${DAYS[i]}</label>
+      <label class="t">Start<input type="time" id="st${i}" data-i="${i}" data-k="start" value="${fmtM(R.start(r))}" ${r.enabled ? '' : 'disabled'}></label>
+      <label class="t">Ende<input type="time" id="et${i}" data-i="${i}" data-k="end" value="${fmtM(R.end(r))}" ${r.enabled ? '' : 'disabled'}></label>
+      <div class="info">${info}</div></div>`;
+  }).join('');
+}
+
+function barChart(bs, byMonth) {
+  const W = 640, H = 210, L = 34, Rr = 8, T = 10, B = 24;
+  const max = Math.max(6, ...bs.map(b => Math.max(b.f, b.t)));
+  const top = Math.ceil(max / 6) * 6;
+  const y = v => T + (H - T - B) * (1 - v / top);
+  const bw = (W - L - Rr) / bs.length;
+  let g = '';
+  for (const v of [0, top / 2, top]) g += `<line class="grid" x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${v}</text>`;
+  let bars = '', path = '';
+  const every = Math.ceil(bs.length / 10);
+  bs.forEach((b, i) => {
+    const x = L + i * bw;
+    if (b.f > 0) bars += `<rect class="barr" x="${x + bw * 0.15}" y="${y(b.f)}" width="${bw * 0.7}" height="${y(0) - y(b.f)}" rx="2"><title>${byMonth ? (b.start.getMonth() + 1) + '/' + b.start.getFullYear() : ddmm(b.start)}: ${b.f.toFixed(1)} h von ${b.t.toFixed(1)} h</title></rect>`;
+    path += `${i ? 'L' : 'M'}${x} ${y(b.t)} L${x + bw} ${y(b.t)} `;
+    if (i % every === 0) g += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle">${byMonth ? ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][b.start.getMonth()] : bs.length <= 7 ? DAYS[dayIdx(b.start)] : b.start.getDate()}</text>`;
+  });
+  return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Fastenstunden pro ${byMonth ? 'Monat' : 'Tag'} mit Soll-Linie">${g}${bars}<path class="target" d="${path}"/></svg></div>
+    <div class="legend"><span style="--c:var(--eat)">Gefastet (Stunden)</span><span style="--c:var(--fast-ink)">Soll laut Plan</span></div>`;
+}
+
+function renderReport() {
+  document.querySelectorAll('#periodCtrl button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.period === period)));
+  $('jokerInput').value = state.jokers;
+  const realNow = new Date();
+  if (!state.sessions.length) {
+    $('reportBody').innerHTML = `<p class="sub">${state.planSaved ? 'Noch keine abgeschlossene Fastenphase. Sobald die erste vorbei ist, erscheint sie hier.' : 'Übernimm im Tab Plan deinen Plan, dann startet die Aufzeichnung.'} Zum Ausprobieren kannst du unten Beispieldaten laden.</p>`;
+  } else {
+    const r = report(period, state.sessions, realNow, state.jokers);
+    const rate = r.n ? Math.round(r.ok / r.n * 100) : 0;
+    $('reportBody').innerHTML = `
+      <div class="kpis">
+        <div class="kpi"><span class="label">Gefastet</span><b>${Math.round(r.fasted)} h</b><small>Soll ${Math.round(r.target)} h</small></div>
+        <div class="kpi"><span class="label">Ziel erreicht</span><b>${rate} %</b><small>${r.ok} von ${r.n} Phasen</small></div>
+        <div class="kpi"><span class="label">Serie</span><b>${r.streak.days} Tage</b><small>${r.streak.left} von ${state.jokers} Jokern übrig</small></div>
+        <div class="kpi"><span class="label">Höhenmeter</span><b>${Math.round(r.fasted)} m</b><small>${Math.round(r.fasted / 330 * 100)} % vom Eiffelturm (330 m)</small></div>
+      </div>
+      ${barChart(buckets(period, state.sessions, realNow), period === 'year')}
+      <p class="sub" style="margin:0;font-size:13px">Lange Fastenzeit über 16 h im Zeitraum: ${hoursText(Math.round(r.long * 60))}. Ein verfehlter Tag verbraucht einen Joker, die Serie läuft dann weiter.</p>`;
+  }
+  const recent = state.sessions.slice(-10).reverse();
+  $('sessions').innerHTML = recent.length ? recent.map(s => {
+    const st = new Date(s.start), pe = new Date(s.plannedEnd), ok = sGoal(s);
+    return `<li>
+      <span class="mono">${DAYS[dayIdx(pe)]} ${ddmm(pe)}</span>
+      <span class="grow">${DAYS[dayIdx(st)]} ${hhmm(st)} → ${DAYS[dayIdx(pe)]} ${hhmm(pe)} · Ziel ${hoursText(sTarget(s))} · <span class="${ok ? 'ok' : 'miss'}">${ok ? 'geschafft' : 'nach ' + hoursText(sFasted(s)) + ' beendet'}</span></span>
+      <details${s.actualEnd ? ' open' : ''}><summary>${s.actualEnd ? 'Ende ändern' : 'Früher gegessen?'}</summary>
+        <span class="row" style="align-items:center">
+          <input type="datetime-local" id="ae_${s.id}" aria-label="Tatsächlich gegessen um" value="${toLocalInput(new Date(sEnd(s)))}" min="${toLocalInput(st)}" max="${toLocalInput(pe)}">
+          <button type="button" data-act="early" data-id="${s.id}">Speichern</button>
+          ${s.actualEnd ? `<button type="button" class="link" data-act="reset" data-id="${s.id}">Zurücksetzen</button>` : ''}
+        </span></details></li>`;
+  }).join('') : '<li>Noch keine Einträge.</li>';
+}
+
+function lineChart(points) {
+  const W = 640, H = 200, L = 40, Rr = 10, T = 10, B = 24;
+  const vals = points.flatMap(p => [p.kg, p.trend]);
+  const lo = Math.floor(Math.min(...vals) - 0.5), hi = Math.ceil(Math.max(...vals) + 0.5);
+  const t0 = points[0].date.getTime(), t1 = Math.max(points[points.length - 1].date.getTime(), t0 + 86400000);
+  const x = t => L + (W - L - Rr) * (t - t0) / (t1 - t0);
+  const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  let g = '';
+  for (const v of [lo, (lo + hi) / 2, hi]) g += `<line class="grid" x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${v.toFixed(1)}</text>`;
+  g += `<text x="${L}" y="${H - 8}">${ddmm(points[0].date)}</text><text x="${W - Rr}" y="${H - 8}" text-anchor="end">${ddmm(points[points.length - 1].date)}</text>`;
+  const pts = points.map(p => `<circle class="pt" cx="${x(p.date.getTime())}" cy="${y(p.kg)}" r="3"><title>${ddmm(p.date)}: ${p.kg.toFixed(1)} kg</title></circle>`).join('');
+  const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(p.date.getTime())} ${y(p.trend)}`).join(' ');
+  return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gewichtsverlauf mit Trendlinie">${g}${pts}<path class="trend" d="${line}"/></svg></div>
+    <div class="legend"><span style="--c:var(--muted)">Messung</span><span style="--c:var(--eat)">Trend</span></div>`;
+}
+
+function renderWeight() {
+  if (!$('wDate').value) $('wDate').value = toDateInput(new Date());
+  const pts = emaTrend(state.weights);
+  if (!pts.length) { $('weightBody').innerHTML = '<p class="sub">Noch keine Messung. Trag oben dein heutiges Gewicht ein.</p>'; return; }
+  const last = pts[pts.length - 1], firstT = pts[0].trend;
+  const diff = last.trend - firstT;
+  $('weightBody').innerHTML = `
+    <div class="kpis">
+      <div class="kpi"><span class="label">Trend</span><b>${last.trend.toFixed(1)} kg</b><small>${diff <= 0 ? '−' : '+'}${Math.abs(diff).toFixed(1)} kg seit ${ddmm(pts[0].date)}</small></div>
+      <div class="kpi"><span class="label">Letzte Messung</span><b>${last.kg.toFixed(1)} kg</b><small>${DAYS[dayIdx(last.date)]} ${ddmm(last.date)}</small></div>
+    </div>
+    ${pts.length > 1 ? lineChart(pts) : ''}
+    <ul class="list sess">${state.weights.slice(-8).reverse().map(w => `<li><span class="mono">${ddmm(new Date(w.date))}</span><span class="grow mono">${Number(w.kg).toFixed(1)} kg</span><button type="button" class="link" data-act="delw" data-id="${w.id}">Löschen</button></li>`).join('')}</ul>`;
+}
+
+function renderReminders() {
+  const lead = Math.min(120, Math.max(5, +$('leadInput').value || 30));
+  const list = plannedReminders(new Date(), state.plan, lead, 8);
+  $('reminders').innerHTML = list.length
+    ? list.map(r => `<li><span class="when">${DAYS[dayIdx(r.at)]} ${ddmm(r.at)} ${hhmm(r.at)}</span><b>${r.title}</b><span class="b">${r.body}</span></li>`).join('')
+    : '<li>Keine Erinnerungen geplant.</li>';
+}
+
+function currentTab() { const t = location.hash.slice(1); return ['heute','plan','auswertung','gewicht','erinnerungen'].includes(t) ? t : 'heute'; }
+function renderTabs() {
+  const t = currentTab();
+  document.querySelectorAll('[data-view]').forEach(v => { v.hidden = v.dataset.view !== t; });
+  document.querySelectorAll('nav.tabs a').forEach(a => { if (a.dataset.tab === t) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+}
+function renderAll() {
+  if (!simulated) { now = new Date(); now.setSeconds(0, 0); }
+  $('simInput').value = toLocalInput(now);
+  renderTabs(); renderStatus(); renderWeek(); renderPlan(); renderReport(); renderWeight(); renderReminders();
+}
+
+// ---- Ereignisse ----
+window.addEventListener('hashchange', renderTabs);
+$('rules').addEventListener('change', e => {
+  const t = e.target, i = +t.dataset.i, k = t.dataset.k;
+  if (k === undefined) return;
+  if (k === 'enabled') state.plan[i].enabled = t.checked; else if (t.value) state.plan[i][k] = toM(t.value);
+  schedulePlanSave(); renderAll(); recordCompleted();
+});
+$('planNotice').addEventListener('click', e => { if (e.target.id === 'adoptPlan') { schedulePlanSave(); renderAll(); setTimeout(recordCompleted, 600); } });
+$('presetExample').addEventListener('click', () => { state.plan = exampleRules(); schedulePlanSave(); renderAll(); });
+$('presetSame').addEventListener('click', () => { state.plan = sameRules(); schedulePlanSave(); renderAll(); });
+$('simInput').addEventListener('change', e => { if (e.target.value) { now = new Date(e.target.value); simulated = true; renderAll(); } });
+$('simNow').addEventListener('click', () => { simulated = false; renderAll(); });
+document.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => { now = new Date(now.getTime() + (+b.dataset.step) * 60000); simulated = true; renderAll(); }));
+$('periodCtrl').addEventListener('click', e => { const p = e.target.dataset?.period; if (p) { period = p; renderReport(); } });
+$('jokerInput').addEventListener('change', e => { const v = Math.min(10, Math.max(0, Math.round(+e.target.value || 0))); state.jokers = v; schedulePlanSave(); renderAll(); });
+$('leadInput').addEventListener('change', renderReminders);
+$('sessions').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const s = state.sessions.find(x => x.id === b.dataset.id); if (!s) return;
+  let actualEnd = null;
+  if (b.dataset.act === 'early') {
+    const v = $('ae_' + s.id).value; if (!v) return;
+    actualEnd = Math.min(Math.max(new Date(v).getTime(), s.start), s.plannedEnd);
+    if (actualEnd >= s.plannedEnd) actualEnd = null;
+  }
+  try { await store.putSession({ ...s, actualEnd }); renderAll(); } catch (err) { showNotice('Änderung nicht gespeichert: ' + (err?.message || err?.code)); }
+});
+$('weightForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const d = $('wDate').value, kg = Math.round(parseFloat($('wKg').value) * 10) / 10;
+  if (!d || !(kg >= 20 && kg <= 400)) return;
+  const [y, m, dd] = d.split('-').map(Number), date = new Date(y, m - 1, dd, 8).getTime();
+  try { await store.putWeight({ id: 'w_' + d, date, kg }); $('wKg').value = ''; renderAll(); } catch (err) { showNotice('Gewicht nicht gespeichert: ' + (err?.message || err?.code)); }
+});
+$('weightBody').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act="delw"]'); if (!b) return;
+  try { await store.remove(b.dataset.id); renderAll(); } catch (err) { showNotice('Löschen fehlgeschlagen: ' + (err?.message || err?.code)); }
+});
+$('demoBtn').addEventListener('click', async () => {
+  const realNow = new Date();
+  const wins = fastingWindows(addDays(realNow, -14), realNow, state.plan);
+  let n = 0;
+  for (const w of wins) {
+    n++;
+    const broken = n % 5 === 0;
+    const s = { id: 's_' + w.start.getTime(), start: w.start.getTime(), plannedEnd: w.end.getTime(), actualEnd: broken ? w.end.getTime() - 3 * 3600000 : null };
+    await store.putSession(s);
+  }
+  for (let k = 14; k >= 0; k--) {
+    const d = addDays(realNow, -k), kg = Math.round((84 - (14 - k) * 0.15 + Math.sin(k * 1.7) * 0.6) * 10) / 10;
+    await store.putWeight({ id: 'w_' + toDateInput(d), date: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 8).getTime(), kg });
+  }
+  state.planSaved = true; schedulePlanSave();
+  renderAll();
+});
+$('clearBtn').addEventListener('click', () => { $('clearConfirm').hidden = false; });
+$('clearNo').addEventListener('click', () => { $('clearConfirm').hidden = true; });
+$('clearYes').addEventListener('click', async () => {
+  $('clearConfirm').hidden = true;
+  const ids = [...state.sessions.map(s => s.id), ...state.weights.map(w => w.id)];
+  for (const id of ids) { try { await store.remove(id); } catch (e) {} }
+  renderAll();
+});
+setInterval(() => { if (!simulated) renderAll(); }, 60000);
+
+renderAll();
+store.init();
+</script>

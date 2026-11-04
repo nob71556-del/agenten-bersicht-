@@ -60,6 +60,8 @@ Für Benachrichtigungen ist keine zusätzliche Capability nötig; die App fragt 
 
 ## Web-Version zum Testen
 
+`webapp.html` ist die vollständige Web-App (eine Datei, im Browser lauffähig): Heute, Plan, Auswertung, Gewicht, Erinnerungsvorschau. Angemeldet in claude.ai speichert sie im Konto, sonst im Browser.
+
 Eine JavaScript-Portierung der Engine mit Editor, Plan-Hinweisen, Erinnerungsvorschau und simulierter Uhrzeit liegt als privates Artifact vor:
 https://claude.ai/artifact/7SxG68pRCjRbnE9peZfg2q
 
