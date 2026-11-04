@@ -312,6 +312,13 @@ public struct ResolvedFastingSnapshot: Sendable {
 
 // MARK: - 5. Berechnungs-Engine
 
+/// Ein Essensabschnitt innerhalb eines Kalendertags, als Anteil des Tages (0…1).
+public struct DayEatingSegment: Hashable, Sendable {
+    public let startFraction: Double
+    public let endFraction: Double
+    public let continuesFromPreviousDay: Bool
+}
+
 public final class FastingScheduleEngine {
     public var calendar: Calendar
 
@@ -384,6 +391,24 @@ public final class FastingScheduleEngine {
             humanReadableHeadline: "Fastenphase seit \(formatTime(previous.end)) Uhr aktiv",
             humanReadableSubline: "Nächstes Essensfenster: \(nextText) (in \(Self.hoursText(minutes: Int(remaining / 60))))."
         )
+    }
+
+    /// Essens-Abschnitte eines Kalendertags als Anteil 0…1 des Tages (für Wochenband/Ribbon).
+    /// Übernachtfenster vom Vortag erscheinen mit `continuesFromPreviousDay = true`.
+    public func eatingSegments(on day: Date, plan: WeeklyFastingPlan) -> [DayEatingSegment] {
+        let dayStart = calendar.startOfDay(for: day)
+        guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else { return [] }
+        let span = dayEnd.timeIntervalSince(dayStart)
+        return eatingIntervals(around: dayStart, plan: plan).compactMap { interval in
+            let s = max(interval.start, dayStart)
+            let e = min(interval.end, dayEnd)
+            guard e > s else { return nil }
+            return DayEatingSegment(
+                startFraction: s.timeIntervalSince(dayStart) / span,
+                endFraction: e.timeIntervalSince(dayStart) / span,
+                continuesFromPreviousDay: interval.start < dayStart
+            )
+        }
     }
 
     // MARK: Intervall-Erzeugung
