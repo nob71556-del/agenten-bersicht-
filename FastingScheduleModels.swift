@@ -419,6 +419,18 @@ public final class FastingScheduleEngine {
             .map { DateInterval(start: $0.start, end: $0.end) }
     }
 
+    /// Fastenphasen (Lücken zwischen Essensfenstern), die vollständig in [start, end] liegen.
+    public func fastingWindows(between start: Date, and end: Date, plan: WeeklyFastingPlan) -> [DateInterval] {
+        guard end > start else { return [] }
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: start),
+                                           to: calendar.startOfDay(for: end)).day ?? 0
+        let eating = eatingIntervals(around: start, plan: plan, dayRange: -2...(max(days, 0) + 8))
+        return zip(eating, eating.dropFirst()).compactMap { previous, next in
+            guard previous.end >= start, next.start <= end else { return nil }
+            return DateInterval(start: previous.end, end: next.start)
+        }
+    }
+
     // MARK: Intervall-Erzeugung
 
     /// Konkrete Essensfenster von 2 Tagen vor bis 8 Tage nach `date`, sortiert und überlappungsfrei.

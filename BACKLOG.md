@@ -11,7 +11,7 @@ Wird stündlich automatisch abgearbeitet: jeweils der erste offene Punkt, danach
 - [x] App-Einstieg `FastFlowApp.swift` mit Tabs Heute / Plan / Erinnerungen
 - [x] Selbst-Review: MainActor-Isolation im Scheduler, `String(format:)` mit `%@` entfernt
 - [x] `README.md`
-- [ ] Verlauf: abgeschlossene Fastenphasen als `@Model FastingSessionRecord` speichern (Start, Ende, Plan-Soll), Streak-Berechnung mit Jokern, Tests
+- [x] Verlauf (`FastingHistory.swift`): abgeschlossene Fastenphasen als `@Model FastingSessionRecord` speichern (Start, Ende, Plan-Soll), Streak-Berechnung mit Jokern, Tests
 - [ ] Auswertung: `FastingReportSummary` aus dem Verlauf für Woche/Monat/Jahr berechnen (Ist vs. Soll), Tests
 - [ ] Report-View: Woche/Monat/Jahr mit Swift Charts (Fastenstunden pro Tag, Soll-Linie), Streak-Anzeige
 - [ ] Gewicht aus HealthKit lesen (bodyMass), geglätteter Trend (EMA), Tests für EMA; Info.plist-Hinweis in README

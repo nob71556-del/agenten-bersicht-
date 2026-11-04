@@ -15,7 +15,7 @@ struct FastFlowApp: App {
         WindowGroup {
             RootView()
         }
-        .modelContainer(for: WeeklyFastingPlan.self)
+        .modelContainer(for: [WeeklyFastingPlan.self, FastingSessionRecord.self])
     }
 }
 
@@ -60,6 +60,7 @@ struct RootView: View {
             }
             // Neu planen bei Planänderung, geänderten Einstellungen und App-Rückkehr.
             .task(id: rescheduleKey(plan)) {
+                FastingHistoryRecorder.recordCompletedFasts(context: context, plan: plan)
                 await scheduler.reschedule(plan: plan, settings: settings)
             }
         } else {

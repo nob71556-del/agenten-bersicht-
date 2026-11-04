@@ -168,3 +168,70 @@ struct FastingNotificationSchedulerTests {
         #expect(planned == planned.sorted { $0.fireDate < $1.fireDate })
     }
 }
+
+@Suite("FastingHistory")
+struct FastingHistoryTests {
+    let calendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Europe/Berlin")!
+        return c
+    }()
+
+    func date(_ d: Int, _ h: Int) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: 11, day: d, hour: h))!
+    }
+
+    /// Fastenphase, die am Tag `d` um 08:00 endet; `brokenAt` = früher gegessen.
+    func session(endingOn d: Int, brokenAt hour: Int? = nil) -> FastingSessionSummary {
+        FastingSessionSummary(start: date(d - 1, 14), plannedEnd: date(d, 8),
+                              actualEnd: hour.map { date(d, $0) })
+    }
+
+    @Test func fastingWindowsMatchPlan() {
+        let engine = FastingScheduleEngine(calendar: calendar)
+        let plan = WeeklyFastingPlan.createWorkweek18_6Weekend14_10Plan()
+        // Sa 07.11. 00:00 bis Mo 09.11. 12:00: So 02:00–16:00 und So 22:00–Mo 08:00
+        let windows = engine.fastingWindows(between: date(7, 0), and: date(9, 12), plan: plan)
+        #expect(windows.count == 2)
+        #expect(windows.first?.duration == 14 * 3600)
+        #expect(windows.last?.duration == 10 * 3600)
+    }
+
+    @Test func streakCountsConsecutiveDays() {
+        let sessions = (1...5).map { session(endingOn: $0) }
+        let result = FastingStreakCalculator.streak(sessions: sessions, today: date(5, 12),
+                                                    calendar: calendar, jokers: 0)
+        #expect(result.currentDays == 5)
+    }
+
+    @Test func missedDayUsesJokerThenBreaks() {
+        let sessions = [session(endingOn: 1, brokenAt: 6), session(endingOn: 2, brokenAt: 6),
+                        session(endingOn: 3), session(endingOn: 4)]
+        let result = FastingStreakCalculator.streak(sessions: sessions, today: date(4, 12),
+                                                    calendar: calendar, jokers: 1)
+        #expect(result.currentDays == 3)
+        #expect(result.jokersUsed == 1)
+        #expect(result.jokersRemaining == 0)
+    }
+
+    @Test func dayWithoutSessionIsNeutral() {
+        let sessions = [session(endingOn: 1), session(endingOn: 3)]
+        let result = FastingStreakCalculator.streak(sessions: sessions, today: date(3, 12),
+                                                    calendar: calendar, jokers: 0)
+        #expect(result.currentDays == 2)
+    }
+
+    @Test func todayWithoutSessionStartsAtYesterday() {
+        let sessions = [session(endingOn: 2), session(endingOn: 3)]
+        let result = FastingStreakCalculator.streak(sessions: sessions, today: date(4, 6),
+                                                    calendar: calendar, jokers: 0)
+        #expect(result.currentDays == 2)
+    }
+
+    @Test func brokenFastCountsFastedMinutes() {
+        let s = session(endingOn: 2, brokenAt: 6)
+        #expect(s.targetMinutes == 18 * 60)
+        #expect(s.fastedMinutes == 16 * 60)
+        #expect(!s.isGoalReached)
+    }
+}
