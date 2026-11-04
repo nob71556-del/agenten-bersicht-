@@ -1,237 +1,304 @@
-<title>FastFlow Fastenplaner</title>
+<title>FastFlow Gezeiten</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-/* Layout: App-Kopf mit Tab-Leiste, darunter je Tab eine Spalte aus Panels. */
+/* Thema „Gezeiten bei Nacht“: Fasten = Ebbe, Essen = Flut. Bewusst nur dunkel (Nachtmeer).
+   Layout: animiertes Meer als Vollbild-Canvas, darüber eine Handy-breite App-Spalte,
+   unten feste Tab-Leiste, links darüber das Maskottchen Flo mit Sprechblase. */
 :root {
-  --bg: #f1f4f1; --panel: #ffffff; --ink: #12201d; --muted: #5d6b67; --line: #d6ddd9;
-  --eat: #0f766e; --eat-soft: #cfe9e5; --fast: #e4e8f3; --fast-ink: #3a4a8a; --warn: #b4531a; --ok: #2f7d32;
-  --f-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
-  --f-body: "IBM Plex Sans", system-ui, sans-serif;
-  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0e1614; --panel: #16221f; --ink: #e6efec; --muted: #94a5a0; --line: #2a3a36;
-    --eat: #3fc1b3; --eat-soft: #1c3f3a; --fast: #1f2740; --fast-ink: #9db0f0; --warn: #f0a070; --ok: #7cc97f;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0e1614; --panel: #16221f; --ink: #e6efec; --muted: #94a5a0; --line: #2a3a36;
-  --eat: #3fc1b3; --eat-soft: #1c3f3a; --fast: #1f2740; --fast-ink: #9db0f0; --warn: #f0a070; --ok: #7cc97f;
+  --night: #050d1a;
+  --deep: #0a2233;
+  --glass: rgba(14, 44, 62, 0.62);
+  --glass-strong: rgba(10, 34, 50, 0.86);
+  --edge: rgba(143, 220, 214, 0.18);
+  --ink: #eaf4f3;
+  --muted: #93b4b9;
+  --moon: #f6ecc8;
+  --glow: #5fe3d0;
+  --glow-2: #7fb6ff;
+  --coral: #ff8f6e;
+  --ok: #8be3a5;
+  --f-display: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  --f-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --tabbar: 68px;
   color-scheme: dark;
 }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
+html, body { height: 100%; }
 body {
-  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 16px 40px;
+  margin: 0; background: var(--night); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.5;
 }
-main { max-width: 860px; margin: 0 auto; display: grid; gap: 16px; }
-h1, h2 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
-h1 { font-size: 1.6rem; letter-spacing: -0.01em; }
-h2 { font-size: 1.1rem; }
-.sub { color: var(--muted); margin: 4px 0 0; }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; display: grid; gap: 12px; }
-.label { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.notice { font-size: 13px; padding: 10px 12px; border-radius: 8px; background: var(--eat-soft); color: var(--ink); display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
-.notice.warn { background: var(--panel); border: 1px solid var(--warn); }
-
-nav.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); }
-nav.tabs a { padding: 8px 12px; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500; }
-nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--eat); }
-
-.mode { display: inline-flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
-.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--eat); }
-.fasting .dot { background: var(--fast-ink); }
-.headline { font-family: var(--f-display); font-size: 1.45rem; line-height: 1.2; font-weight: 700; text-wrap: balance; }
-.bar { height: 12px; border-radius: 6px; background: var(--fast); overflow: hidden; }
-.bar > i { display: block; height: 100%; background: var(--fast-ink); width: 0; }
-.eating .bar { background: var(--eat-soft); }
-.eating .bar > i { background: var(--eat); }
-.stats { display: flex; flex-wrap: wrap; gap: 8px 28px; }
-.stat b { display: block; font-family: var(--f-mono); font-weight: 500; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
-
-.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
-.row label { display: grid; gap: 4px; }
-input[type="datetime-local"], input[type="time"], input[type="date"], input[type="number"] {
-  font: inherit; font-family: var(--f-mono); color: var(--ink); background: var(--bg);
-  border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0;
+#sea { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+.app {
+  position: relative; z-index: 1; max-width: 520px; margin: 0 auto; min-height: 100%;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px calc(var(--tabbar) + 150px + env(safe-area-inset-bottom, 0px));
 }
-input[type="number"] { width: 7em; }
-button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
-button:hover { border-color: var(--eat); }
-button.primary { background: var(--eat); color: var(--panel); border-color: var(--eat); }
-button.link { background: none; border: none; padding: 0; color: var(--eat); text-decoration: underline; }
-button[aria-pressed="true"] { background: var(--eat-soft); border-color: var(--eat); }
-:focus-visible { outline: 2px solid var(--eat); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: 1.55rem; font-weight: 800; }
+h2 { font-size: 1.15rem; font-weight: 700; }
+h3 { font-size: 0.98rem; font-weight: 700; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--glow); }
 
-.week { display: grid; gap: 6px; }
-.wrow { display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 8px; }
+.card {
+  background: var(--glass); border: 1px solid var(--edge); border-radius: 22px; padding: 18px;
+  backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255,255,255,.06);
+  display: grid; gap: 12px; min-width: 0;
+}
+.stack { display: grid; gap: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.between { justify-content: space-between; }
+
+/* Buttons mit Druck- und Wellen-Animation */
+button, .btn {
+  position: relative; overflow: hidden; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer;
+  background: rgba(95, 227, 208, .1); border: 1px solid var(--edge); border-radius: 14px; padding: 10px 16px;
+  transition: transform .15s cubic-bezier(.3,.7,.4,1.5), background .2s, border-color .2s, box-shadow .2s;
+}
+button:hover { border-color: rgba(95,227,208,.5); }
+button:active { transform: scale(.94); }
+button.primary {
+  background: linear-gradient(135deg, #5fe3d0, #4fb4e8); color: #04202a; border: 0;
+  box-shadow: 0 6px 24px rgba(95, 227, 208, .35);
+}
+button.ghost { background: transparent; }
+button.danger { background: rgba(255,143,110,.12); border-color: rgba(255,143,110,.5); color: #ffd2c3; }
+button.chip { border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 14px; }
+button.chip[aria-pressed="true"] { background: rgba(95,227,208,.25); border-color: var(--glow); }
+button.link { background: none; border: 0; padding: 0; color: var(--glow); text-decoration: underline; font-weight: 600; }
+button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.ripple { position: absolute; border-radius: 50%; transform: scale(0); background: rgba(255,255,255,.35); animation: ripple .6s ease-out forwards; pointer-events: none; }
+@keyframes ripple { to { transform: scale(3.2); opacity: 0; } }
+:focus-visible { outline: 2px solid var(--glow); outline-offset: 3px; }
+
+input[type="text"], input[type="number"], input[type="time"], input[type="date"], input[type="datetime-local"] {
+  font: inherit; font-family: var(--f-mono); color: var(--ink); background: rgba(5, 18, 28, .6);
+  border: 1px solid var(--edge); border-radius: 12px; padding: 10px 12px; min-width: 0;
+  transition: border-color .2s, box-shadow .2s;
+}
+input[type="text"] { font-family: var(--f-body); font-size: 17px; width: 100%; }
+input:focus { border-color: var(--glow); box-shadow: 0 0 0 4px rgba(95,227,208,.15); outline: none; }
+label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+
+/* Schalter */
+.switch { position: relative; width: 50px; height: 30px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch span { position: absolute; inset: 0; border-radius: 99px; background: rgba(147,180,185,.25); transition: background .25s; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); transition: transform .3s cubic-bezier(.3,.7,.4,1.4); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.switch input:checked + span { background: var(--glow); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 2px solid var(--glow); outline-offset: 3px; }
+.check { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.check input { width: 22px; height: 22px; accent-color: var(--glow); margin-top: 2px; flex: none; }
+
+/* Ansichtswechsel */
+.view { animation: viewIn .45s cubic-bezier(.2,.8,.2,1); }
+@keyframes viewIn { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: none; } }
+.pop { animation: pop .5s cubic-bezier(.3,.7,.4,1.5); }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Kopf */
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.top .date { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+
+/* Gezeiten-Ring */
+.ringwrap { display: grid; place-items: center; position: relative; padding: 6px 0 2px; }
+.ring { width: min(78vw, 290px); height: auto; overflow: visible; }
+.ring .track { fill: none; stroke: rgba(147,180,185,.16); stroke-width: 14; }
+.ring .prog { fill: none; stroke-width: 14; stroke-linecap: round; transition: stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1); filter: drop-shadow(0 0 10px rgba(95,227,208,.55)); }
+.ring .tick { stroke: rgba(147,180,185,.35); stroke-width: 2; }
+.ring .bead { fill: var(--moon); filter: drop-shadow(0 0 8px rgba(246,236,200,.9)); }
+.ringcenter { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 4px; }
+.ringcenter .mode { font-family: var(--f-mono); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--glow); }
+.ringcenter .time { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.2rem, 11vw, 3rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.ringcenter .until { font-size: 13px; color: var(--muted); }
+.eating .ringcenter .mode { color: var(--moon); }
+
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tile { background: rgba(5, 18, 28, .45); border: 1px solid var(--edge); border-radius: 16px; padding: 12px; min-width: 0; }
+.tile b { display: block; font-family: var(--f-display); font-size: 1.25rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.tile span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-family: var(--f-mono); }
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.kpis .tile b { font-size: 1.5rem; }
+.kpis .tile small { color: var(--muted); font-size: 12px; display: block; }
+
+/* Wochenband */
+.week { display: grid; gap: 7px; }
+.wrow { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: center; }
 .wrow .d { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
-.wrow.today .d { color: var(--ink); font-weight: 500; }
-.track { position: relative; height: 22px; background: var(--fast); border-radius: 4px; overflow: hidden; }
-.seg { position: absolute; top: 0; bottom: 0; background: var(--eat); }
-.seg.cont-l { background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 4px, transparent 4px 8px); }
-.now { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--warn); }
-.axis { display: grid; grid-template-columns: 28px 1fr; gap: 8px; }
+.wrow.today .d { color: var(--moon); font-weight: 700; }
+.track { position: relative; height: 16px; background: rgba(127,182,255,.12); border-radius: 99px; overflow: hidden; }
+.seg { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: linear-gradient(90deg, #5fe3d0, #4fb4e8); transform-origin: left; animation: grow .8s cubic-bezier(.2,.8,.2,1) both; }
+.seg.cont { background: repeating-linear-gradient(135deg, #5fe3d0 0 5px, #3aa99c 5px 10px); }
+@keyframes grow { from { transform: scaleX(0); } }
+.nowmark { position: absolute; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: var(--moon); box-shadow: 0 0 10px var(--moon); }
+.axis { display: grid; grid-template-columns: 26px 1fr; gap: 8px; }
 .axis div { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
-.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); }
-.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; vertical-align: -1px; background: var(--c); }
 
-.rules { display: grid; }
-.rule { display: grid; grid-template-columns: 56px auto auto 1fr; gap: 8px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
-.rule:first-child { border-top: 0; }
-.rule .dn { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 700; }
-.rule label.t { display: grid; gap: 2px; font-size: 11px; color: var(--muted); }
-.rule .info { font-family: var(--f-mono); font-size: 12px; color: var(--muted); min-width: 0; }
-.rule .info b { color: var(--ink); font-weight: 500; }
-.rule.off .t, .rule.off .info { opacity: .45; }
-.tag { display: inline-block; padding: 1px 6px; border-radius: 4px; background: var(--eat-soft); color: var(--eat); font-size: 11px; }
+/* Plan */
+.day { display: grid; gap: 10px; padding: 14px; border-radius: 18px; background: rgba(5,18,28,.45); border: 1px solid var(--edge); transition: opacity .3s, transform .3s; }
+.day.off { opacity: .55; }
+.day .times { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.day .meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: 12px; background: rgba(127,182,255,.14); color: #cfe2ff; font-family: var(--f-mono); }
+.pill.glow { background: rgba(95,227,208,.16); color: #b8fff3; }
+.pill.moon { background: rgba(246,236,200,.14); color: var(--moon); }
+.hint { font-size: 13px; padding: 10px 12px; border-radius: 14px; background: rgba(127,182,255,.1); border-left: 3px solid var(--glow-2); }
+.hint.warning { background: rgba(255,143,110,.1); border-left-color: var(--coral); }
 
-ul.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.hints li { font-size: 13px; padding: 8px 10px; border-radius: 6px; background: var(--bg); border-left: 3px solid var(--muted); }
-.hints li.warning { border-left-color: var(--warn); }
-.rem li { display: grid; grid-template-columns: 110px 1fr; gap: 2px 12px; font-size: 14px; }
-.rem .when, .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
-.rem .when { color: var(--muted); }
-.rem .b { grid-column: 2; color: var(--muted); font-size: 13px; }
-.sess li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
-.sess li:first-child { border-top: 0; }
-.sess .ok { color: var(--ok); } .sess .miss { color: var(--warn); }
-.sess .grow { flex: 1 1 200px; min-width: 0; }
-.sess details { flex-basis: 100%; }
-.sess summary { cursor: pointer; color: var(--eat); font-size: 13px; }
-.sess details .row { margin-top: 6px; }
-
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.kpi { background: var(--bg); border-radius: 8px; padding: 12px; }
-.kpi b { display: block; font-family: var(--f-display); font-size: 1.5rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.kpi small { color: var(--muted); font-size: 12px; }
-.seg-ctrl { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+/* Auswertung */
 .chartbox { overflow-x: auto; }
-svg.chart { width: 100%; min-width: 320px; height: auto; display: block; }
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 svg.chart text { fill: var(--muted); font: 13px var(--f-mono); }
-svg.chart .grid { stroke: var(--line); stroke-width: 1; fill: none; }
-svg.chart .barr { fill: var(--eat); }
-svg.chart .target { stroke: var(--fast-ink); stroke-width: 2; stroke-dasharray: 4 3; fill: none; }
-svg.chart .trend { stroke: var(--eat); stroke-width: 2.5; fill: none; }
-svg.chart .pt { fill: var(--muted); }
-@media (max-width: 520px) { .rule { grid-template-columns: 56px 1fr 1fr; } .rule .info { grid-column: 1 / -1; } .rem li { grid-template-columns: 1fr; } .rem .b { grid-column: 1; } }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+svg.chart .grid { stroke: rgba(147,180,185,.18); fill: none; }
+svg.chart .barr { fill: url(#barGrad); transform-box: fill-box; transform-origin: bottom; animation: barUp .9s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes barUp { from { transform: scaleY(0); } }
+svg.chart .target { stroke: var(--moon); stroke-width: 2; stroke-dasharray: 5 4; fill: none; opacity: .8; }
+svg.chart .trend { stroke: var(--glow); stroke-width: 3; fill: none; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.4s ease-out forwards; filter: drop-shadow(0 0 6px rgba(95,227,208,.6)); }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+svg.chart .pt { fill: var(--glow-2); opacity: .7; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -2px; }
+.sess { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sess li { padding: 12px; border-radius: 14px; background: rgba(5,18,28,.45); display: grid; gap: 6px; font-size: 14px; animation: viewIn .4s both; }
+.sess .ok { color: var(--ok); } .sess .miss { color: var(--coral); }
+.sess summary { cursor: pointer; color: var(--glow); font-size: 13px; font-weight: 600; }
+.sess details .row { margin-top: 8px; }
+
+/* Tab-Leiste */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(to top, rgba(4, 12, 22, .96), rgba(4, 12, 22, .82));
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid var(--edge);
+}
+.tabbar nav { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.tabbar a {
+  position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 14px;
+  color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 700; transition: color .25s, transform .15s;
+}
+.tabbar a:active { transform: scale(.9); }
+.tabbar a svg { width: 24px; height: 24px; transition: transform .35s cubic-bezier(.3,.7,.4,1.6); }
+.tabbar a[aria-current="page"] { color: var(--ink); }
+.tabbar a[aria-current="page"] svg { transform: translateY(-3px) scale(1.12); color: var(--glow); filter: drop-shadow(0 0 8px rgba(95,227,208,.7)); }
+.tabbar a[aria-current="page"]::after { content: ""; position: absolute; bottom: 0; width: 18px; height: 3px; border-radius: 3px; background: var(--glow); box-shadow: 0 0 10px var(--glow); animation: pop .4s both; }
+
+/* Maskottchen Flo */
+.buddy {
+  position: fixed; z-index: 15; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--tabbar) + 6px + env(safe-area-inset-bottom, 0px));
+  width: min(520px, 100%); padding: 0 max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
+  display: flex; align-items: flex-end; gap: 6px; pointer-events: none;
+}
+.otterbtn { pointer-events: auto; background: none; border: 0; padding: 0; width: 92px; height: 92px; flex: none; border-radius: 50%; overflow: visible; box-shadow: none; }
+.otterbtn:active { transform: scale(.92) rotate(-4deg); }
+.otterbtn > span, .otterbtn > [data-otter] { display: block; width: 100%; height: 100%; }
+.otter { width: 100%; height: 100%; overflow: visible; display: block; }
+.otter .bob { animation: bob 3.2s ease-in-out infinite; transform-origin: 60px 100px; }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
+.otter .eyes { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.otter .pencil { transform-box: fill-box; transform-origin: 0 100%; animation: scribble 1.4s ease-in-out infinite; }
+@keyframes scribble { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-12deg); } }
+.otter.happy .bob { animation: hop .7s cubic-bezier(.3,.7,.4,1.5) 3; }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-18px) rotate(-6deg); } }
+.otter .waterline { animation: lap 2.6s ease-in-out infinite; }
+@keyframes lap { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-6px); } }
+.bubble {
+  pointer-events: auto; position: relative; margin-bottom: 44px; max-width: 340px;
+  background: rgba(246, 236, 200, .97); color: #10232b; border-radius: 18px 18px 18px 6px; padding: 11px 14px;
+  font-size: 14.5px; line-height: 1.4; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  transform-origin: 0 100%; animation: bubbleIn .45s cubic-bezier(.3,.7,.4,1.5);
+  cursor: pointer;
+}
+.bubble::before { content: ""; position: absolute; left: -7px; bottom: 10px; border: 8px solid transparent; border-right-color: rgba(246,236,200,.97); border-left: 0; }
+.bubble.out { animation: bubbleOut .35s ease-in forwards; }
+@keyframes bubbleIn { from { opacity: 0; transform: scale(.6) translateY(10px); } }
+@keyframes bubbleOut { to { opacity: 0; transform: scale(.8) translateY(8px); } }
+.bubble .who { display: block; font-family: var(--f-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #2b7c74; margin-bottom: 2px; }
+.bubble .caret { display: inline-block; width: 7px; height: 14px; background: #10232b; vertical-align: -2px; margin-left: 2px; animation: caret .8s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+
+/* Onboarding */
+.onboard { position: fixed; inset: 0; z-index: 40; overflow-y: auto; display: grid; place-items: center;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); }
+.onboard .panel { width: min(460px, 100%); display: grid; gap: 18px; }
+.onboard .hero { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.onboard .hero .otterbtn { width: 150px; height: 150px; pointer-events: none; }
+.onboard h1 { font-size: 1.9rem; text-align: center; }
+.dots { display: flex; justify-content: center; gap: 8px; }
+.dots i { width: 8px; height: 8px; border-radius: 99px; background: rgba(147,180,185,.35); transition: width .35s, background .35s; }
+.dots i.on { width: 26px; background: var(--glow); }
+.choices { display: grid; gap: 10px; }
+.choice { text-align: left; display: grid; gap: 2px; padding: 14px 16px; border-radius: 18px; background: rgba(5,18,28,.5); }
+.choice b { font-family: var(--f-display); font-size: 1.02rem; }
+.choice span { color: var(--muted); font-weight: 500; font-size: 13px; }
+.choice[aria-pressed="true"] { border-color: var(--glow); background: rgba(95,227,208,.16); box-shadow: 0 0 0 3px rgba(95,227,208,.15); }
+.splash { position: fixed; inset: 0; z-index: 50; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; transition: opacity .5s; }
+.splash .otterbtn { width: 130px; height: 130px; }
+
+.toast {
+  position: fixed; z-index: 60; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
+  background: var(--glass-strong); border: 1px solid var(--glow); color: var(--ink); padding: 10px 16px; border-radius: 99px;
+  font-weight: 700; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.4); animation: toastIn .4s cubic-bezier(.3,.7,.4,1.5);
+}
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, -16px) scale(.9); } }
+.confetti { position: fixed; z-index: 55; pointer-events: none; width: 8px; height: 8px; border-radius: 50%; background: var(--glow); animation: bubbleRise 1.6s ease-out forwards; }
+@keyframes bubbleRise { to { transform: translate(var(--dx), -220px) scale(.4); opacity: 0; } }
+
+.notice { font-size: 13px; padding: 10px 12px; border-radius: 14px; background: rgba(255,143,110,.12); border: 1px solid rgba(255,143,110,.35); }
+@media (max-width: 380px) { .tiles { grid-template-columns: 1fr 1fr; } .otterbtn { width: 78px; height: 78px; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
 </style>
 
-<main>
-  <header>
-    <h1>FastFlow Fastenplaner</h1>
-    <p class="sub">Eigene Essenszeiten pro Wochentag, auch über Mitternacht. Verlauf, Auswertung, Gewicht und Erinnerungen.</p>
-  </header>
-  <div id="storeNotice" class="notice" hidden></div>
-  <nav class="tabs" aria-label="Bereiche">
-    <a href="#heute" data-tab="heute">Heute</a>
-    <a href="#plan" data-tab="plan">Plan</a>
-    <a href="#auswertung" data-tab="auswertung">Auswertung</a>
-    <a href="#gewicht" data-tab="gewicht">Gewicht</a>
-    <a href="#erinnerungen" data-tab="erinnerungen">Erinnerungen</a>
+<canvas id="sea" aria-hidden="true"></canvas>
+<div id="toastRoot"></div>
+
+<div class="splash" id="splash">
+  <div class="otterbtn" data-otter></div>
+  <p class="eyebrow">FastFlow</p>
+  <p class="muted">Flo taucht auf …</p>
+</div>
+
+<!-- Onboarding -->
+<section class="onboard" id="onboard" hidden aria-label="Einrichtung">
+  <div class="panel card" id="obPanel"></div>
+</section>
+
+<div class="app" id="app" hidden>
+  <section data-view="heute" class="view-host"></section>
+  <section data-view="plan" class="view-host" hidden></section>
+  <section data-view="analyse" class="view-host" hidden></section>
+  <section data-view="gewicht" class="view-host" hidden></section>
+  <section data-view="profil" class="view-host" hidden></section>
+</div>
+
+<div class="buddy" id="buddy" hidden>
+  <button class="otterbtn" id="otterBtn" type="button" aria-label="Flo antippen für einen neuen Gedanken"><span data-otter></span></button>
+  <div class="bubble" id="bubble" role="status" aria-live="polite" hidden></div>
+</div>
+
+<div class="tabbar" id="tabbar" hidden>
+  <nav aria-label="Bereiche">
+    <a href="#heute" data-tab="heute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Heute</a>
+    <a href="#plan" data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18M8 14h3M8 17h6"/></svg>Plan</a>
+    <a href="#analyse" data-tab="analyse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Analyse</a>
+    <a href="#gewicht" data-tab="gewicht"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 16c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1"/><path d="M2 10c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1"/></svg>Gewicht</a>
+    <a href="#profil" data-tab="profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Profil</a>
   </nav>
-
-  <!-- HEUTE -->
-  <section data-view="heute" class="view">
-    <div style="display:grid;gap:16px">
-      <section class="panel status" id="status" aria-live="polite"></section>
-      <section class="panel">
-        <div class="row">
-          <label><span class="label">Zeit simulieren (nur Heute-Ansicht)</span><input type="datetime-local" id="simInput"></label>
-          <button id="simNow" type="button">Jetzt</button>
-          <button data-step="-60" type="button">−1 h</button>
-          <button data-step="60" type="button">+1 h</button>
-          <button data-step="-1440" type="button">−1 Tag</button>
-          <button data-step="1440" type="button">+1 Tag</button>
-        </div>
-      </section>
-      <section class="panel">
-        <h2>Woche</h2>
-        <div class="week" id="week"></div>
-        <div class="axis"><span></span><div><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>
-        <div class="legend"><span style="--c:var(--eat)">Essen</span><span style="--c:var(--fast)">Fasten</span><span style="--c:var(--warn)">Jetzt</span></div>
-      </section>
-    </div>
-  </section>
-
-  <!-- PLAN -->
-  <section data-view="plan" class="view" hidden>
-    <section class="panel">
-      <h2>Tagesregeln</h2>
-      <div id="planNotice"></div>
-      <ul class="list hints" id="hints"></ul>
-      <p class="sub" style="margin:0">Ende vor oder gleich dem Start bedeutet: Das Fenster läuft in den Folgetag.</p>
-      <div class="rules" id="rules"></div>
-      <div class="row">
-        <button id="presetExample" type="button">Vorlage: Mo–Fr 08–14, Sa 17–02, So 16–22</button>
-        <button id="presetSame" type="button">Vorlage: alle Tage 12–20 Uhr</button>
-      </div>
-    </section>
-  </section>
-
-  <!-- AUSWERTUNG -->
-  <section data-view="auswertung" class="view" hidden>
-    <div style="display:grid;gap:16px">
-      <section class="panel">
-        <div class="row" style="justify-content:space-between">
-          <div class="seg-ctrl" id="periodCtrl" role="group" aria-label="Zeitraum">
-            <button type="button" data-period="week">Woche</button>
-            <button type="button" data-period="month">Monat</button>
-            <button type="button" data-period="year">Jahr</button>
-          </div>
-          <label class="row" style="align-items:center"><span class="label">Joker</span><input type="number" id="jokerInput" min="0" max="10" step="1"></label>
-        </div>
-        <div id="reportBody"></div>
-      </section>
-      <section class="panel">
-        <h2>Letzte Fastenphasen</h2>
-        <p class="sub" style="margin:0">Werden automatisch aus deinem Plan übernommen, sobald sie vorbei sind. Hast du früher gegessen, trag es hier ein.</p>
-        <ul class="list sess" id="sessions"></ul>
-        <div class="row">
-          <button id="demoBtn" type="button">Beispieldaten laden (14 Tage)</button>
-          <button id="clearBtn" type="button">Verlauf und Gewicht löschen</button>
-        </div>
-        <div id="clearConfirm" class="notice warn" hidden>
-          Wirklich alle Fastenphasen und Gewichtseinträge löschen?
-          <button id="clearYes" type="button">Ja, löschen</button>
-          <button id="clearNo" type="button">Abbrechen</button>
-        </div>
-      </section>
-    </div>
-  </section>
-
-  <!-- GEWICHT -->
-  <section data-view="gewicht" class="view" hidden>
-    <section class="panel">
-      <h2>Gewicht</h2>
-      <form class="row" id="weightForm">
-        <label><span class="label">Datum</span><input type="date" id="wDate" required></label>
-        <label><span class="label">Kilogramm</span><input type="number" id="wKg" min="20" max="400" step="0.1" required></label>
-        <button class="primary" type="submit">Eintragen</button>
-      </form>
-      <p class="sub" style="margin:0">Die Linie zeigt den geglätteten Trend. Tagesschwankungen durch Wasser und Salz fallen so kaum ins Gewicht. In der iOS-App kommt das Gewicht automatisch aus Apple Health.</p>
-      <div id="weightBody"></div>
-    </section>
-  </section>
-
-  <!-- ERINNERUNGEN -->
-  <section data-view="erinnerungen" class="view" hidden>
-    <section class="panel">
-      <h2>Nächste Erinnerungen</h2>
-      <p class="sub" style="margin:0">Vorschau, wann die iOS-App dich erinnert. Diese Webseite selbst kann keine Mitteilungen senden.</p>
-      <div class="row">
-        <label><span class="label">Vorlauf vor Fensterende (min)</span><input type="number" id="leadInput" min="5" max="120" step="5" value="30"></label>
-      </div>
-      <ul class="list rem" id="reminders"></ul>
-    </section>
-  </section>
-</main>
+</div>
 
 <script>
 // ================= Engine (Port der Swift-Engine) =================
@@ -393,14 +460,261 @@ function emaTrend(weights, alpha = 0.1) {
   });
 }
 //--UI--
+// ================= Hilfen =================
+const $ = id => document.getElementById(id);
+const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const toM = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+const fmtM = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${hhmm(d)}`;
+const toDateInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const clock = ms => { const t = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(t / 3600)}:${pad(Math.floor(t % 3600 / 60))}:${pad(t % 60)}`; };
+const dayWord = d => { const t = startOfDay(new Date()), x = startOfDay(d); const diff = Math.round((x - t) / 86400000); return diff === 0 ? 'heute' : diff === 1 ? 'morgen' : diff === -1 ? 'gestern' : FULL[dayIdx(d)]; };
+
+// ================= Flo, der Seeotter =================
+const OTTER = `<svg class="otter" viewBox="0 0 120 120" aria-hidden="true">
+<g class="bob">
+<ellipse cx="60" cy="96" rx="33" ry="24" fill="#8d5d3e"/>
+<ellipse cx="60" cy="100" rx="21" ry="15" fill="#ecd2b2"/>
+<circle cx="35" cy="34" r="8.5" fill="#6e4630"/><circle cx="85" cy="34" r="8.5" fill="#6e4630"/>
+<circle cx="35" cy="34" r="4" fill="#e3b48f"/><circle cx="85" cy="34" r="4" fill="#e3b48f"/>
+<ellipse cx="60" cy="56" rx="30" ry="27" fill="#8d5d3e"/>
+<ellipse cx="60" cy="67" rx="19" ry="13" fill="#ecd2b2"/>
+<circle cx="43" cy="66" r="4" fill="#ff9c86" opacity=".45"/><circle cx="77" cy="66" r="4" fill="#ff9c86" opacity=".45"/>
+<g class="eyes"><circle cx="49" cy="52" r="3.6" fill="#16100c"/><circle cx="71" cy="52" r="3.6" fill="#16100c"/><circle cx="50.2" cy="50.8" r="1.2" fill="#fff"/><circle cx="72.2" cy="50.8" r="1.2" fill="#fff"/></g>
+<g fill="none" stroke="#f6ecc8" stroke-width="2"><circle cx="49" cy="52" r="8"/><circle cx="71" cy="52" r="8"/><path d="M57 51.5q3-2 6 0"/></g>
+<ellipse cx="60" cy="62" rx="4.6" ry="3.2" fill="#2a1b13"/>
+<path d="M60 65.2q-3.5 4.5-7 1.2M60 65.2q3.5 4.5 7 1.2" fill="none" stroke="#2a1b13" stroke-width="1.6" stroke-linecap="round"/>
+<g stroke="#2a1b13" stroke-width=".9" opacity=".55" stroke-linecap="round" fill="none"><path d="M44 64l-12-2M44 67l-12 1M76 64l12-2M76 67l12 1"/></g>
+<g transform="rotate(-8 60 92)"><rect x="42" y="82" width="36" height="25" rx="3" fill="#5fe3d0" stroke="#2b7c74" stroke-width="1.5"/><path d="M60 82v25" stroke="#2b7c74" stroke-width="1.2"/><path d="M46 89h10M46 94h8M64 89h10M64 94h7" stroke="#0e3c38" stroke-width="1.2" stroke-linecap="round"/></g>
+<ellipse cx="45" cy="92" rx="6" ry="4.5" fill="#6e4630"/>
+<g class="pencil"><ellipse cx="76" cy="92" rx="6" ry="4.5" fill="#6e4630"/><path d="M78 90l12-14" stroke="#ffcc66" stroke-width="3.2" stroke-linecap="round"/><path d="M90 76l2-2.4" stroke="#ff8f6e" stroke-width="3.2" stroke-linecap="round"/></g>
+</g>
+<g class="waterline"><path d="M-6 108q8-5 16 0t16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0v16H-6z" fill="#0f4d63" opacity=".92"/><path d="M-6 108q8-5 16 0t16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0" fill="none" stroke="#5fe3d0" stroke-width="1.5" opacity=".7"/></g>
+</svg>`;
+function mountOtters() { document.querySelectorAll('[data-otter]').forEach(el => { if (!el.firstChild) el.innerHTML = OTTER; }); }
+
+const flo = { idx: {}, timer: null, typing: null, lastView: null };
+function floLines(view) {
+  const name = state.profile?.name || 'du';
+  const real = new Date();
+  const L = [];
+  const st = streak(state.sessions, real, state.jokers);
+  const lastS = state.sessions[state.sessions.length - 1];
+  if (view === 'heute') {
+    const snap = resolve(now, state.plan);
+    if (!snap) return [`Im Plan ist gerade kein Tag aktiv. Zeigst du mir im Tab Plan, wann du essen möchtest?`];
+    const rem = Math.floor((snap.end - now) / 60000), p = (now - snap.start) / (snap.end - snap.start);
+    const endT = hhmm(snap.end);
+    if (snap.mode === 'fasting') {
+      if (p < 0.15) L.push(`Die Ebbe hat begonnen, ${name}. Ich hab's notiert: Die Flut kommt ${dayWord(snap.end)} um ${endT} Uhr.`);
+      else if (p < 0.5) L.push(`Ich hab nachgelesen: Hunger kommt oft in Wellen und ebbt nach einer Weile wieder ab. Ein Glas Wasser hilft vielen.`);
+      else if (p < 0.85) L.push(`Mehr als die Hälfte geschafft! Noch ${hoursText(rem)}. Du bleibst ruhig wie das Meer bei Nacht.`);
+      else L.push(`Fast geschafft, ${name}! Noch ${hoursText(rem)} bis zur Flut. Ich bin richtig stolz auf dich.`);
+      const h = now.getHours();
+      if (h >= 23 || h < 5) L.push(`Es ist spät. Schlaf zählt auch zur Fastenzeit – die entspannteste Strecke überhaupt.`);
+      L.push(`Wasser, ungesüßter Tee und schwarzer Kaffee passen in die Fastenzeit. Hab ich mir dick unterstrichen.`);
+    } else {
+      if (rem <= 45) L.push(`Gleich schließt dein Fenster um ${endT} Uhr. Noch ${hoursText(rem)} für eine letzte Mahlzeit.`);
+      else if (snap.end.toDateString() !== now.toDateString()) L.push(`Heute läuft dein Fenster über Mitternacht bis ${endT} Uhr. Ich bleib wach und schreib mit!`);
+      else if (p < 0.2) L.push(`Flut! Dein Essensfenster ist offen bis ${endT} Uhr. Guten Appetit, ${name}!`);
+      else L.push(`Dein Fenster ist noch ${hoursText(rem)} offen. Was gibt's heute Gutes?`);
+      L.push(`Ich hab gelesen: Eiweiß und Gemüse halten viele Menschen lange satt. Vielleicht hilft dir das für die nächste Ebbe.`);
+    }
+    if (st.days >= 2) L.push(`Du hast es bisher super durchgehalten: ${st.days} Tage in Folge!`);
+    if (lastS && !sGoal(lastS)) L.push(`Die letzte Fastenphase lief anders als geplant? Kein Problem. Ich lerne gerade: Dranbleiben zählt mehr als Perfektsein.`);
+    L.push(`Seeotter halten beim Schlafen Händchen, damit sie nicht abtreiben. Ich halt mich an dir fest – du dich an deinem Plan?`);
+  } else if (view === 'plan') {
+    const hints = validate(state.plan);
+    if (hints.length) L.push(`Mir ist was aufgefallen: ${hints[0].msg}`);
+    L.push(`Endet ein Fenster nach Mitternacht? Stell einfach eine Endzeit vor der Startzeit ein. Ich rechne das richtig um.`);
+    L.push(`Tipp aus meinem Notizbuch: Ein Plan, den du gut halten kannst, schlägt einen perfekten Plan, der dich stresst.`);
+    L.push(`Am Wochenende anders essen ist völlig okay. Jeder Tag darf seine eigenen Gezeiten haben.`);
+  } else if (view === 'analyse') {
+    if (!state.sessions.length) L.push(`Hier sammle ich deine Fastenphasen. Sobald die erste vorbei ist, rechne ich los – ich liebe Statistik!`);
+    else {
+      const r = report(analysePeriod, state.sessions, real, state.jokers);
+      if (r.n) L.push(`Ich hab nachgerechnet: ${Math.round(r.ok / r.n * 100)} % deiner Fastenphasen in diesem Zeitraum geschafft.`);
+      L.push(`${Math.round(r.fasted)} Stunden gefastet – das sind ${Math.round(r.fasted)} Höhenmeter. Der Eiffelturm hat 330.`);
+      L.push(`Du hast noch ${r.streak.left} ${r.streak.left === 1 ? 'Joker' : 'Joker'}. Ein verpatzter Tag reißt deine Serie also nicht gleich ab.`);
+    }
+  } else if (view === 'gewicht') {
+    const pts = emaTrend(state.weights);
+    if (pts.length < 2) L.push(`Trag dein Gewicht ein, wann du magst. Ich zeichne daraus eine ruhige Trendlinie statt Tageszacken.`);
+    else {
+      const d = pts[pts.length - 1].trend - pts[0].trend;
+      L.push(d <= 0
+        ? `Dein Trend zeigt ${Math.abs(d).toFixed(1)} kg weniger seit dem ${ddmm(pts[0].date)} – schön gleichmäßig, wie Ebbe und Flut.`
+        : `Der Trend liegt ${d.toFixed(1)} kg über dem Anfang. Tageswerte schwanken stark – ich schau lieber auf Wochen.`);
+    }
+    L.push(`Am besten vergleichbar sind Messungen morgens nach dem Aufstehen. Hab ich gelesen!`);
+  } else if (view === 'profil') {
+    L.push(`Hier kannst du deinen Namen ändern und sehen, wann ich dich erinnern würde.`);
+    L.push(`Wichtig, auch für einen Lernotter wie mich: Bei Beschwerden lieber ärztlichen Rat holen. Fasten soll sich gut anfühlen.`);
+  }
+  L.push(`Wusstest du? Ebbe und Flut wechseln etwa alle sechs Stunden. Dein Rhythmus darf aber ganz deiner sein.`);
+  return L;
+}
+function floSay(text, { happy = false } = {}) {
+  const b = $('bubble');
+  clearTimeout(flo.timer); clearInterval(flo.typing);
+  b.hidden = false; b.classList.remove('out');
+  b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
+  b.innerHTML = `<span class="who">Flo</span><span class="txt"></span><span class="caret"></span>`;
+  const t = b.querySelector('.txt');
+  if (REDUCE) { t.textContent = text; b.querySelector('.caret').remove(); }
+  else {
+    let i = 0;
+    flo.typing = setInterval(() => { i += 2; t.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(flo.typing); b.querySelector('.caret')?.remove(); } }, 22);
+  }
+  const otter = document.querySelector('#otterBtn .otter');
+  if (otter && happy && !REDUCE) { otter.classList.remove('happy'); requestAnimationFrame(() => otter.classList.add('happy')); setTimeout(() => otter.classList.remove('happy'), 2200); }
+  flo.timer = setTimeout(() => { b.classList.add('out'); setTimeout(() => { b.hidden = true; }, 350); }, 12000);
+}
+function floNext(view, reset = false) {
+  const lines = floLines(view);
+  if (reset) flo.idx[view] = 0;
+  const i = (flo.idx[view] ?? 0) % lines.length;
+  flo.idx[view] = i + 1;
+  floSay(lines[i]);
+}
+
+// ================= Animiertes Meer =================
+const sea = { tide: 0.64, targetTide: 0.64, moon: 1, targetMoon: 1, running: false };
+function initSea() {
+  const c = $('sea'), ctx = c.getContext('2d');
+  let W = 0, H = 0, stars = [], plankton = [];
+  function resize() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    stars = Array.from({ length: Math.round(W * H / 4200) }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.62, r: Math.random() * 1.3 + 0.3, p: Math.random() * 6.28, s: 0.6 + Math.random() * 1.6 }));
+    plankton = Array.from({ length: 46 }, () => ({ x: Math.random() * W, y: H * (0.7 + Math.random() * 0.3), r: Math.random() * 1.8 + 0.6, v: 0.12 + Math.random() * 0.3, p: Math.random() * 6.28 }));
+    if (REDUCE) draw(0);
+  }
+  function draw(t) {
+    const time = t / 1000;
+    sea.tide += (sea.targetTide - sea.tide) * (REDUCE ? 1 : 0.02);
+    sea.moon += (sea.targetMoon - sea.moon) * (REDUCE ? 1 : 0.03);
+    const horizon = H * sea.tide;
+    let g = ctx.createLinearGradient(0, 0, 0, horizon);
+    g.addColorStop(0, '#030812'); g.addColorStop(0.55, '#0a1d33'); g.addColorStop(1, '#14425a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, horizon + 2);
+    ctx.fillStyle = '#ffffff';
+    for (const s of stars) {
+      if (s.y > horizon - 6) continue;
+      ctx.globalAlpha = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(time * s.s + s.p));
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // Mond: Füllgrad = Fortschritt der Fastenphase (Vollmond = Ziel)
+    const mr = Math.max(20, Math.min(W, H) * 0.05), mx = W * 0.8, my = Math.min(H * 0.13, 110) + 4 * Math.sin(time * 0.25);
+    const rg = ctx.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 4.5);
+    rg.addColorStop(0, `rgba(246,236,200,${0.12 + 0.18 * sea.moon})`); rg.addColorStop(1, 'rgba(246,236,200,0)');
+    ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(mx, my, mr * 4.5, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#1a2a3b'; ctx.beginPath(); ctx.arc(mx, my, mr, 0, 6.283); ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(mx, my, mr, 0, 6.283); ctx.clip();
+    ctx.fillStyle = '#f6ecc8'; ctx.beginPath(); ctx.arc(mx - (1 - sea.moon) * mr * 2.05, my, mr, 0, 6.283); ctx.fill();
+    ctx.fillStyle = 'rgba(120,110,80,.18)';
+    for (const [dx, dy, rr] of [[-0.3, -0.2, 0.22], [0.25, 0.3, 0.15], [0.1, -0.45, 0.1]]) { ctx.beginPath(); ctx.arc(mx + dx * mr, my + dy * mr, rr * mr, 0, 6.283); ctx.fill(); }
+    ctx.restore();
+    // Wasser
+    g = ctx.createLinearGradient(0, horizon, 0, H);
+    g.addColorStop(0, '#0f3d52'); g.addColorStop(1, '#030d17');
+    ctx.fillStyle = g; ctx.fillRect(0, horizon, W, H - horizon);
+    // Mondspiegelung
+    for (let i = 0; i < 16; i++) {
+      const y = horizon + 8 + i * 11, w = mr * (1.8 - i * 0.07) * (0.55 + 0.45 * Math.sin(time * 1.8 + i * 1.3));
+      ctx.fillStyle = `rgba(246,236,200,${(0.32 * (1 - i / 16)) * sea.moon})`;
+      ctx.fillRect(mx - w / 2 + Math.sin(time + i) * 5, y, w, 2);
+    }
+    // Wellen
+    const layers = [
+      { amp: 5, len: 170, spd: 0.7, off: 0, col: 'rgba(95,227,208,0.10)' },
+      { amp: 8, len: 250, spd: -0.45, off: 16, col: 'rgba(79,180,232,0.13)' },
+      { amp: 11, len: 330, spd: 0.32, off: 38, col: 'rgba(6,30,46,0.78)' },
+      { amp: 14, len: 420, spd: -0.22, off: 80, col: 'rgba(3,16,28,0.85)' },
+    ];
+    for (const L of layers) {
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W + 12; x += 12) {
+        const y = horizon + L.off + Math.sin(x / L.len * 6.283 + time * L.spd) * L.amp + Math.sin(x / (L.len * 0.53) + time * L.spd * 1.7) * L.amp * 0.4;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H); ctx.closePath(); ctx.fillStyle = L.col; ctx.fill();
+    }
+    // Leuchtplankton
+    ctx.fillStyle = '#5fe3d0';
+    for (const p of plankton) {
+      if (!REDUCE) { p.y -= p.v; p.x += Math.sin(time + p.p) * 0.25; }
+      if (p.y < horizon + 30) { p.y = H + 5; p.x = Math.random() * W; }
+      ctx.globalAlpha = 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(time * 2.2 + p.p));
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  function loop(t) { if (document.hidden) { sea.running = false; return; } draw(t); requestAnimationFrame(loop); }
+  function start() { if (REDUCE || sea.running) return; sea.running = true; requestAnimationFrame(loop); }
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) start(); });
+  resize(); start();
+  sea.redraw = () => { if (REDUCE) draw(0); };
+}
+function updateSea() {
+  const snap = resolve(now, state.plan);
+  if (!snap || snap.mode === 'eating') { sea.targetTide = 0.56; sea.targetMoon = 1; }
+  else { sea.targetTide = 0.68; sea.targetMoon = Math.max(0.08, Math.min(1, (now - snap.start) / (snap.end - snap.start))); }
+  sea.redraw?.();
+}
+
+// ================= Effekte =================
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled || REDUCE || b.classList.contains('otterbtn')) return;
+  const r = b.getBoundingClientRect(), s = Math.max(r.width, r.height);
+  const sp = document.createElement('span'); sp.className = 'ripple';
+  sp.style.width = sp.style.height = s + 'px'; sp.style.left = (e.clientX - r.left - s / 2) + 'px'; sp.style.top = (e.clientY - r.top - s / 2) + 'px';
+  b.appendChild(sp); setTimeout(() => sp.remove(), 650);
+});
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
+  $('toastRoot').replaceChildren(t); setTimeout(() => { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2200);
+}
+function celebrate() {
+  if (REDUCE) return;
+  const cx = window.innerWidth / 2, cy = window.innerHeight * 0.45;
+  for (let i = 0; i < 26; i++) {
+    const d = document.createElement('i'); d.className = 'confetti';
+    d.style.left = (cx + (Math.random() - 0.5) * 160) + 'px'; d.style.top = (cy + Math.random() * 60) + 'px';
+    d.style.setProperty('--dx', ((Math.random() - 0.5) * 220) + 'px');
+    d.style.background = ['#5fe3d0', '#f6ecc8', '#7fb6ff'][i % 3];
+    d.style.animationDelay = (Math.random() * 0.3) + 's';
+    document.body.appendChild(d); setTimeout(() => d.remove(), 2000);
+  }
+}
+function countUp(root) {
+  root.querySelectorAll('[data-count]').forEach(el => {
+    const to = +el.dataset.count, suf = el.dataset.suffix || '', dec = +(el.dataset.dec || 0);
+    if (REDUCE) { el.textContent = to.toFixed(dec) + suf; return; }
+    const t0 = performance.now(), dur = 900;
+    const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = (to * e).toFixed(dec) + suf; if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+}
+
 // ================= Daten & Speicher =================
-const exampleRules = () => DAYS.map((_, i) => i === 5 ? { enabled: true, start: 1020, end: 120 } : i === 6 ? { enabled: true, start: 960, end: 1320 } : { enabled: true, start: 480, end: 840 });
-const sameRules = () => DAYS.map(() => ({ enabled: true, start: 720, end: 1200 }));
-const state = { plan: exampleRules(), planSaved: false, jokers: 2, sessions: [], weights: [], ready: false };
-const LS_KEY = 'fastflow-v2';
+const PRESETS = {
+  p16: { title: '16:8 · Klassiker', sub: 'Jeden Tag 12–20 Uhr essen', rules: () => DAYS.map(() => ({ enabled: true, start: 720, end: 1200 })) },
+  p14: { title: '14:10 · Sanfter Einstieg', sub: 'Jeden Tag 9–19 Uhr essen', rules: () => DAYS.map(() => ({ enabled: true, start: 540, end: 1140 })) },
+  p18: { title: '18:6 · Fortgeschritten', sub: 'Jeden Tag 10–16 Uhr essen', rules: () => DAYS.map(() => ({ enabled: true, start: 600, end: 960 })) },
+  pweek: { title: 'Woche & Wochenende', sub: 'Mo–Fr 8–14 Uhr · Sa 17–2 Uhr nachts · So 16–22 Uhr', rules: () => DAYS.map((_, i) => i === 5 ? { enabled: true, start: 1020, end: 120 } : i === 6 ? { enabled: true, start: 960, end: 1320 } : { enabled: true, start: 480, end: 840 }) },
+};
+const state = { profile: null, plan: PRESETS.p16.rules(), planSaved: false, jokers: 2, sessions: [], weights: [], ready: false };
+const LS_KEY = 'fastflow-gezeiten-v1';
+let pendingPlanSave = null;
 
 const store = {
-  mode: 'local', col: null,
+  mode: 'local', col: null, unsub: null,
   async init() {
     let db = null, uid = null;
     try {
@@ -409,334 +723,486 @@ const store = {
         db = d; uid = u ? await u.id() : null;
       }
     } catch (e) { db = null; }
-    if (db && uid) {
-      this.mode = 'db';
-      this.col = db.collection('data/users/' + uid);
-      let first = true;
-      const timer = setTimeout(() => { if (first) { this.fallback('Dein Konto antwortet gerade nicht. Gespeichert wird vorerst nur in diesem Browser.'); } }, 10000);
-      this.unsub = this.col.onSnapshot(snap => {
-        clearTimeout(timer);
-        const sessions = [], weights = [];
-        let planDoc = null;
-        for (const d of snap.docs) {
-          const v = d.data() || {};
-          if (d.id === 'plan') planDoc = v;
-          else if (v.kind === 'session') sessions.push({ id: d.id, start: v.start, plannedEnd: v.plannedEnd, actualEnd: v.actualEnd ?? null });
-          else if (v.kind === 'weight') weights.push({ id: d.id, date: v.date, kg: v.kg });
-        }
-        if (planDoc && Array.isArray(planDoc.rules) && planDoc.rules.length === 7) {
-          if (!pendingPlanSave) state.plan = planDoc.rules;
-          state.jokers = Number.isFinite(planDoc.jokers) ? planDoc.jokers : 2;
-          state.planSaved = true;
-        }
-        state.sessions = sessions.sort((a, b) => a.plannedEnd - b.plannedEnd);
-        state.weights = weights.sort((a, b) => a.date - b.date);
-        if (first) { first = false; state.ready = true; recordCompleted(); }
-        renderAll();
-      }, err => { clearTimeout(timer); this.fallback('Speichern im Konto ist gerade nicht möglich (' + (err?.code || 'Fehler') + '). Gespeichert wird vorerst nur in diesem Browser.'); });
-      showNotice(null);
-    } else {
-      this.fallback('Du bist nicht angemeldet oder diese Ansicht hat keinen Kontospeicher. Gespeichert wird nur in diesem Browser.');
-    }
+    if (!db || !uid) return this.fallback(null);
+    this.mode = 'db'; this.col = db.collection('data/users/' + uid);
+    let first = true;
+    const timer = setTimeout(() => { if (first) this.fallback('Dein Konto antwortet gerade nicht. FastFlow speichert vorerst nur in diesem Browser.'); }, 10000);
+    this.unsub = this.col.onSnapshot(snap => {
+      clearTimeout(timer);
+      const sessions = [], weights = []; let planDoc = null, profDoc = null;
+      for (const d of snap.docs) {
+        const v = d.data() || {};
+        if (d.id === 'plan') planDoc = v; else if (d.id === 'profile') profDoc = v;
+        else if (v.kind === 'session') sessions.push({ id: d.id, start: v.start, plannedEnd: v.plannedEnd, actualEnd: v.actualEnd ?? null });
+        else if (v.kind === 'weight') weights.push({ id: d.id, date: v.date, kg: v.kg });
+      }
+      if (planDoc && Array.isArray(planDoc.rules) && planDoc.rules.length === 7) {
+        if (!pendingPlanSave) state.plan = planDoc.rules;
+        state.jokers = Number.isFinite(planDoc.jokers) ? planDoc.jokers : 2; state.planSaved = true;
+      }
+      state.profile = profDoc && profDoc.onboarded ? { name: String(profDoc.name || '').slice(0, 30), onboarded: true, since: Number(profDoc.since) || 0 } : null;
+      state.sessions = sessions.sort((a, b) => a.plannedEnd - b.plannedEnd);
+      state.weights = weights.sort((a, b) => a.date - b.date);
+      if (first) { first = false; boot(); } else refresh();
+    }, err => { clearTimeout(timer); this.fallback('Speichern im Konto klappt gerade nicht (' + (err?.code || 'Fehler') + '). FastFlow speichert vorerst nur in diesem Browser.'); });
   },
   fallback(msg) {
-    if (this.unsub) { try { this.unsub(); } catch (e) {} }
-    this.mode = 'local'; this.col = null;
+    if (this.unsub) { try { this.unsub(); } catch (e) {} this.unsub = null; }
+    this.mode = 'local'; this.col = null; this.notice = msg;
     try {
       const s = JSON.parse(localStorage.getItem(LS_KEY));
-      if (s && Array.isArray(s.plan) && s.plan.length === 7) { state.plan = s.plan; state.planSaved = !!s.planSaved; state.jokers = s.jokers ?? 2; state.sessions = s.sessions || []; state.weights = s.weights || []; }
+      if (s && Array.isArray(s.plan) && s.plan.length === 7) Object.assign(state, { plan: s.plan, planSaved: !!s.planSaved, jokers: s.jokers ?? 2, sessions: s.sessions || [], weights: s.weights || [], profile: s.profile || null });
     } catch (e) {}
-    state.ready = true;
-    showNotice(msg);
-    recordCompleted();
-    renderAll();
+    if (!state.ready) boot(); else refresh();
   },
   saveLocal() {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ plan: state.plan, planSaved: state.planSaved, jokers: state.jokers, sessions: state.sessions, weights: state.weights })); } catch (e) {}
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ plan: state.plan, planSaved: state.planSaved, jokers: state.jokers, sessions: state.sessions, weights: state.weights, profile: state.profile })); } catch (e) {}
   },
-  async savePlan() {
-    if (this.mode === 'db') await this.col.doc('plan').set({ rules: state.plan, jokers: state.jokers });
-    else this.saveLocal();
-  },
+  async savePlan() { if (this.mode === 'db') await this.col.doc('plan').set({ rules: state.plan, jokers: state.jokers }); else this.saveLocal(); },
+  async saveProfile() { if (this.mode === 'db') await this.col.doc('profile').set({ name: state.profile.name, onboarded: true, since: state.profile.since || Date.now() }); else this.saveLocal(); },
   async putSession(s) {
-    if (this.mode === 'db') await this.col.doc(s.id).set({ kind: 'session', start: s.start, plannedEnd: s.plannedEnd, actualEnd: s.actualEnd ?? null });
-    else { const i = state.sessions.findIndex(x => x.id === s.id); if (i >= 0) state.sessions[i] = s; else state.sessions.push(s); state.sessions.sort((a, b) => a.plannedEnd - b.plannedEnd); this.saveLocal(); }
+    if (this.mode === 'db') return this.col.doc(s.id).set({ kind: 'session', start: s.start, plannedEnd: s.plannedEnd, actualEnd: s.actualEnd ?? null });
+    const i = state.sessions.findIndex(x => x.id === s.id); if (i >= 0) state.sessions[i] = s; else state.sessions.push(s);
+    state.sessions.sort((a, b) => a.plannedEnd - b.plannedEnd); this.saveLocal();
   },
   async putWeight(w) {
-    if (this.mode === 'db') await this.col.doc(w.id).set({ kind: 'weight', date: w.date, kg: w.kg });
-    else { const i = state.weights.findIndex(x => x.id === w.id); if (i >= 0) state.weights[i] = w; else state.weights.push(w); state.weights.sort((a, b) => a.date - b.date); this.saveLocal(); }
+    if (this.mode === 'db') return this.col.doc(w.id).set({ kind: 'weight', date: w.date, kg: w.kg });
+    const i = state.weights.findIndex(x => x.id === w.id); if (i >= 0) state.weights[i] = w; else state.weights.push(w);
+    state.weights.sort((a, b) => a.date - b.date); this.saveLocal();
   },
   async remove(id) {
-    if (this.mode === 'db') await this.col.doc(id).delete();
-    else { state.sessions = state.sessions.filter(x => x.id !== id); state.weights = state.weights.filter(x => x.id !== id); this.saveLocal(); }
+    if (this.mode === 'db') return this.col.doc(id).delete();
+    state.sessions = state.sessions.filter(x => x.id !== id); state.weights = state.weights.filter(x => x.id !== id);
+    if (id === 'profile') state.profile = null; if (id === 'plan') state.planSaved = false;
+    this.saveLocal();
   },
 };
-function showNotice(msg) { const el = $('storeNotice'); el.hidden = !msg; el.textContent = msg || ''; }
-
-let pendingPlanSave = null;
-function schedulePlanSave() {
-  state.planSaved = true;
-  clearTimeout(pendingPlanSave);
+function savePlanSoon() {
+  state.planSaved = true; clearTimeout(pendingPlanSave);
   pendingPlanSave = setTimeout(async () => {
-    try { await store.savePlan(); } catch (e) { showNotice('Plan konnte nicht gespeichert werden: ' + (e?.message || e?.code || 'unbekannter Fehler')); }
-    pendingPlanSave = null;
+    try { await store.savePlan(); toast('Plan gespeichert'); } catch (e) { toast('Plan konnte nicht gespeichert werden'); }
+    pendingPlanSave = null; recordCompleted();
   }, 500);
 }
-
-/** Übernimmt beendete Fastenphasen aus dem Plan (höchstens 7 Tage zurück), erst wenn der Plan gespeichert ist. */
 let recording = false;
+const celebrated = new Set();
 async function recordCompleted() {
-  if (!state.planSaved || recording) return;
+  if (!state.planSaved || !state.profile || recording) return;
   recording = true;
   try {
-    const realNow = new Date();
+    const real = new Date();
     const last = state.sessions.length ? Math.max(...state.sessions.map(s => s.plannedEnd)) : null;
-    const lookback = addDays(realNow, -7).getTime();
-    const from = new Date(Math.max(last ?? lookback, lookback));
-    const wins = fastingWindows(from, realNow, state.plan).filter(w => last === null || w.start.getTime() >= last);
+    const lookback = addDays(real, -7).getTime();
+    const since = state.profile.since || 0;
+    const from = new Date(Math.max(last ?? lookback, lookback, since));
+    // Nur Phasen, die nach der Einrichtung begonnen haben – keine erfundene Vergangenheit.
+    const wins = fastingWindows(from, real, state.plan).filter(w => (last === null || w.start.getTime() >= last) && w.start.getTime() >= since);
     for (const w of wins) await store.putSession({ id: 's_' + w.start.getTime(), start: w.start.getTime(), plannedEnd: w.end.getTime(), actualEnd: null });
-    if (wins.length && store.mode === 'local') renderAll();
-  } catch (e) { showNotice('Verlauf konnte nicht aktualisiert werden: ' + (e?.message || e?.code || 'unbekannter Fehler')); }
+    if (wins.length) {
+      const newest = wins[wins.length - 1];
+      if (real - newest.end < 3 * 3600000 && !celebrated.has(newest.start.getTime())) {
+        celebrated.add(newest.start.getTime());
+        setTimeout(() => { celebrate(); floSay(`Geschafft, ${state.profile.name}! Deine Fastenphase ist vorbei – ich trag sie gleich stolz ein.`, { happy: true }); }, 900);
+      }
+      if (store.mode === 'local') refresh();
+    }
+  } catch (e) { toast('Verlauf konnte nicht aktualisiert werden'); }
   recording = false;
 }
 
-// ================= UI =================
-const $ = id => document.getElementById(id);
-const toM = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
-const fmtM = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
-const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${hhmm(d)}`;
-const toDateInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+// ================= Ansichten =================
 let now = new Date(); now.setSeconds(0, 0);
 let simulated = false;
-let period = 'week';
+let analysePeriod = 'week';
+const VIEWS = ['heute', 'plan', 'analyse', 'gewicht', 'profil'];
+const currentView = () => { const t = location.hash.slice(1); return VIEWS.includes(t) ? t : 'heute'; };
+const greet = () => { const h = new Date().getHours(); return h < 5 ? 'Gute Nacht' : h < 11 ? 'Guten Morgen' : h < 17 ? 'Hallo' : h < 22 ? 'Guten Abend' : 'Gute Nacht'; };
 
-function renderStatus() {
-  const snap = resolve(now, state.plan), el = $('status');
-  if (!snap) { el.className = 'panel status'; el.innerHTML = '<div class="headline">Kein aktiver Tag im Plan.</div><p class="sub">Aktiviere im Tab Plan mindestens einen Wochentag.</p>'; return; }
-  const total = snap.end - snap.start, done = now - snap.start;
-  const pct = Math.min(100, Math.max(0, done / total * 100));
+let ringFromZero = true;
+function viewHeute() {
+  const snap = resolve(now, state.plan), name = esc(state.profile?.name || '');
+  const head = `<div class="top"><div><p class="eyebrow">FastFlow · Gezeiten</p><h1>${greet()}, ${name}</h1></div><div class="date">${FULL[dayIdx(now)]}<br>${ddmm(now)}${simulated ? '<br>Testzeit ' + hhmm(now) : ''}</div></div>`;
+  if (!snap) return head + `<div class="card"><h2>Kein aktiver Tag</h2><p class="muted">Aktiviere im Plan mindestens einen Wochentag.</p><a class="btn" href="#plan">Zum Plan</a></div>`;
   const st = streak(state.sessions, new Date(), state.jokers);
-  el.className = 'panel status ' + snap.mode;
-  el.innerHTML = `
-    <div class="mode"><span class="dot"></span>${snap.mode === 'eating' ? 'Essensfenster' : 'Fasten'}${simulated ? ' · simuliert ' + DAYS[dayIdx(now)] + ' ' + ddmm(now) + ' ' + hhmm(now) : ''}</div>
-    <div class="headline">${snap.headline}</div>
-    <p class="sub" style="margin:0">${snap.sub}</p>
-    <div class="bar" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
-    <div class="stats">
-      <div class="stat"><span class="label">Fortschritt</span><b>${Math.round(pct)} %</b></div>
-      <div class="stat"><span class="label">Vergangen</span><b>${hoursText(Math.floor(done / 60000))}</b></div>
-      <div class="stat"><span class="label">Verbleibend</span><b>${hoursText(Math.floor((snap.end - now) / 60000))}</b></div>
-      <div class="stat"><span class="label">Fenster</span><b>${DAYS[dayIdx(snap.start)]} ${hhmm(snap.start)} → ${DAYS[dayIdx(snap.end)]} ${hhmm(snap.end)}</b></div>
-      <div class="stat"><span class="label">Serie</span><b>${st.days} ${st.days === 1 ? 'Tag' : 'Tage'}</b></div>
+  const wk = report('week', state.sessions, new Date(), state.jokers);
+  const iv = intervals(now, state.plan).filter(x => x.start > now)[0];
+  const fasting = snap.mode === 'fasting';
+  const nextLabel = fasting ? 'Nächste Flut' : 'Nächste Ebbe';
+  const nextAt = fasting ? snap.end : snap.end;
+  const early = fasting && state.sessions.find(s => s.start === snap.start.getTime() && s.actualEnd);
+  return head + `
+  <div class="card ${fasting ? 'fasting' : 'eating'}" id="ringCard">
+    <div class="ringwrap">
+      <svg class="ring" viewBox="0 0 300 300" aria-hidden="true">
+        <defs><linearGradient id="ringG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${fasting ? '#5fe3d0' : '#f6ecc8'}"/><stop offset="1" stop-color="${fasting ? '#7fb6ff' : '#ffb98f'}"/></linearGradient></defs>
+        ${Array.from({ length: 24 }, (_, i) => { const a = i / 24 * 6.283 - 1.5708, r1 = 132, r2 = i % 6 ? 136 : 140; return `<line class="tick" x1="${150 + r1 * Math.cos(a)}" y1="${150 + r1 * Math.sin(a)}" x2="${150 + r2 * Math.cos(a)}" y2="${150 + r2 * Math.sin(a)}"/>`; }).join('')}
+        <circle class="track" cx="150" cy="150" r="115"/>
+        <circle class="prog" id="ringProg" cx="150" cy="150" r="115" stroke="url(#ringG)" stroke-dasharray="722.6" stroke-dashoffset="${ringFromZero ? 722.6 : (722.6 * (1 - Math.min(1, Math.max(0, (now - snap.start) / (snap.end - snap.start))))).toFixed(1)}" transform="rotate(-90 150 150)"/>
+        <circle class="bead" id="ringBead" r="9" cx="150" cy="35"/>
+      </svg>
+      <div class="ringcenter">
+        <span class="mode">${fasting ? 'Ebbe · Fasten' : 'Flut · Essen'}</span>
+        <span class="time" id="ringTime">${clock(snap.end - now)}</span>
+        <span class="until">${fasting ? 'bis zur Flut' : 'bis zur Ebbe'} · ${dayWord(snap.end)} ${hhmm(snap.end)} Uhr</span>
+      </div>
     </div>
-    <div class="stat"><span class="label">Phase</span><b style="font-family:var(--f-body)">${snap.stage}</b><span class="sub" style="font-size:12px">Richtwerte zur Orientierung, individuell verschieden. Keine medizinische Beratung.</span></div>`;
+    <p style="text-align:center"><b>${fasting ? snap.stage : 'Dein Essensfenster ist offen'}</b><br><span class="muted small">${fasting ? 'Richtwerte zur Orientierung, individuell verschieden. Keine medizinische Beratung.' : esc(snap.sub)}</span></p>
+    ${fasting ? (early
+      ? `<p class="small" style="text-align:center">Heute vorzeitig beendet um ${hhmm(new Date(early.actualEnd))} Uhr. Ist notiert.</p>`
+      : `<div class="row" style="justify-content:center"><button type="button" id="endEarly">Ich habe schon gegessen</button></div>
+         <div class="row" id="endConfirm" style="justify-content:center" hidden><span class="small">Aktuelle Fastenphase jetzt beenden?</span><button type="button" class="primary" id="endYes">Ja, beenden</button><button type="button" class="ghost" id="endNo">Abbrechen</button></div>`) : ''}
+  </div>
+  <div class="tiles">
+    <div class="tile"><span>Serie</span><b data-count="${st.days}" data-suffix="${st.days === 1 ? ' Tag' : ' Tage'}">0</b></div>
+    <div class="tile"><span>Woche</span><b data-count="${Math.round(wk.fasted)}" data-suffix=" h">0 h</b></div>
+    <div class="tile"><span>${nextLabel}</span><b class="mono" style="font-size:1.05rem">${DAYS[dayIdx(nextAt)]} ${hhmm(nextAt)}</b></div>
+  </div>
+  <div class="card">
+    <div class="row between"><h2>Deine Gezeiten-Woche</h2><span class="pill moon">jetzt</span></div>
+    <div class="week">${weekRows()}</div>
+    <div class="axis"><span></span><div><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>
+    <div class="legend"><span><i style="background:linear-gradient(90deg,#5fe3d0,#4fb4e8)"></i>Essen (Flut)</span><span><i style="background:rgba(127,182,255,.25)"></i>Fasten (Ebbe)</span></div>
+  </div>`;
 }
-
-function renderWeek() {
+function weekRows() {
   const rows = [];
   for (let i = 0; i < 7; i++) {
     const day = addDays(now, i - dayIdx(now)), next = addDays(day, 1), span = next - day;
     const segs = intervals(day, state.plan).map(iv => {
       const s = Math.max(iv.start, day), e = Math.min(iv.end, next);
       if (e <= s) return '';
-      return `<div class="seg${iv.start < day ? ' cont-l' : ''}" style="left:${(s - day) / span * 100}%;width:${(e - s) / span * 100}%"></div>`;
+      return `<div class="seg${iv.start < day ? ' cont' : ''}" style="left:${(s - day) / span * 100}%;width:${(e - s) / span * 100}%;animation-delay:${i * 60}ms"></div>`;
     }).join('');
-    const isToday = day.toDateString() === now.toDateString();
-    const mark = isToday ? `<div class="now" style="left:${(now - day) / span * 100}%"></div>` : '';
-    rows.push(`<div class="wrow${isToday ? ' today' : ''}"><span class="d">${DAYS[i]}</span><div class="track">${segs}${mark}</div></div>`);
+    const today = day.toDateString() === now.toDateString();
+    rows.push(`<div class="wrow${today ? ' today' : ''}"><span class="d">${DAYS[i]}</span><div class="track">${segs}${today ? `<div class="nowmark" style="left:${(now - day) / span * 100}%"></div>` : ''}</div></div>`);
   }
-  $('week').innerHTML = rows.join('');
+  return rows.join('');
+}
+function updateRing() {
+  const snap = resolve(now, state.plan), prog = $('ringProg'); if (!snap || !prog) return;
+  const p = Math.min(1, Math.max(0, (now - snap.start) / (snap.end - snap.start)));
+  prog.style.strokeDashoffset = String(722.6 * (1 - p));
+  const a = p * 6.283 - 1.5708; $('ringBead').setAttribute('cx', 150 + 115 * Math.cos(a)); $('ringBead').setAttribute('cy', 150 + 115 * Math.sin(a));
+  $('ringTime').textContent = clock(snap.end - now);
 }
 
-function renderPlan() {
-  $('planNotice').innerHTML = state.planSaved
-    ? ''
-    : `<div class="notice">Das ist ein Beispielplan. Passe ihn an oder übernimm ihn so. Erst danach zeichnet FastFlow deine Fastenphasen auf. <button class="primary" type="button" id="adoptPlan">Plan übernehmen</button></div>`;
-  $('hints').innerHTML = validate(state.plan).map(h => `<li class="${h.sev}">${h.sev === 'warning' ? 'Achtung: ' : ''}${h.msg}</li>`).join('');
-  $('rules').innerHTML = state.plan.map((r, i) => {
-    const f = fastingAfter(state.plan, i);
-    const info = r.enabled
-      ? `<b>${badge(state.plan, i)}</b> Fasten:Essen · Fenster ${hoursText(R.dur(r))}${R.crosses(r) ? ' <span class="tag">über Mitternacht → ' + DAYS[(i + 1) % 7] + '</span>' : ''}${f !== null ? '<br>danach ' + hoursText(f) + ' Pause' : ''}`
-      : 'Kein Essensfenster (nur Fasten)';
-    return `<div class="rule${r.enabled ? '' : ' off'}">
-      <label class="dn"><input type="checkbox" id="en${i}" data-i="${i}" data-k="enabled" ${r.enabled ? 'checked' : ''}>${DAYS[i]}</label>
-      <label class="t">Start<input type="time" id="st${i}" data-i="${i}" data-k="start" value="${fmtM(R.start(r))}" ${r.enabled ? '' : 'disabled'}></label>
-      <label class="t">Ende<input type="time" id="et${i}" data-i="${i}" data-k="end" value="${fmtM(R.end(r))}" ${r.enabled ? '' : 'disabled'}></label>
-      <div class="info">${info}</div></div>`;
-  }).join('');
+function viewPlan() {
+  const hints = validate(state.plan);
+  return `<div class="top"><div><p class="eyebrow">Dein Rhythmus</p><h1>Plan</h1></div></div>
+  <div class="stack">
+    <div class="card">
+      <h3>Vorlagen</h3>
+      <div class="row">${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="chip" data-preset="${k}">${p.title}</button>`).join('')}</div>
+      <p class="muted small">Jeder Tag lässt sich danach einzeln anpassen. Liegt das Ende vor dem Start, läuft das Fenster über Mitternacht.</p>
+    </div>
+    ${hints.length ? `<div class="stack">${hints.map(h => `<div class="hint ${h.sev}">${h.sev === 'warning' ? '<b>Achtung:</b> ' : ''}${esc(h.msg)}</div>`).join('')}</div>` : ''}
+    ${state.plan.map((r, i) => {
+      const f = fastingAfter(state.plan, i);
+      return `<div class="day${r.enabled ? '' : ' off'}" style="animation:viewIn .4s ${i * 50}ms both">
+        <div class="row between"><h3>${FULL[i]}</h3>
+          <label class="switch" title="${FULL[i]} an/aus"><input type="checkbox" id="en${i}" data-i="${i}" data-k="enabled" ${r.enabled ? 'checked' : ''} aria-label="${FULL[i]} aktiv"><span></span></label></div>
+        ${r.enabled ? `<div class="times">
+          <label class="field">Essen ab<input type="time" id="st${i}" data-i="${i}" data-k="start" value="${fmtM(R.start(r))}"></label>
+          <label class="field">Essen bis<input type="time" id="et${i}" data-i="${i}" data-k="end" value="${fmtM(R.end(r))}"></label></div>
+        <div class="meta"><span class="pill glow">${badge(state.plan, i)} Fasten:Essen</span><span class="pill">Fenster ${hoursText(R.dur(r))}</span>
+          ${R.crosses(r) ? `<span class="pill moon">über Mitternacht bis ${DAYS[(i + 1) % 7]} ${fmtM(R.end(r))}</span>` : ''}
+          ${f !== null ? `<span class="pill">danach ${hoursText(f)} Ebbe</span>` : ''}</div>`
+        : `<p class="muted small">Kein Essensfenster – an diesem Tag ist durchgehend Ebbe.</p>`}
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 function barChart(bs, byMonth) {
-  const W = 640, H = 210, L = 34, Rr = 8, T = 10, B = 24;
+  const W = 400, H = 230, Lp = 34, Rp = 8, T = 12, B = 28;
   const max = Math.max(6, ...bs.map(b => Math.max(b.f, b.t)));
-  const top = Math.ceil(max / 6) * 6;
-  const y = v => T + (H - T - B) * (1 - v / top);
-  const bw = (W - L - Rr) / bs.length;
-  let g = '';
-  for (const v of [0, top / 2, top]) g += `<line class="grid" x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${v}</text>`;
-  let bars = '', path = '';
-  const every = Math.ceil(bs.length / 10);
+  const top = Math.ceil(max / 6) * 6, y = v => T + (H - T - B) * (1 - v / top), bw = (W - Lp - Rp) / bs.length;
+  let g = '', bars = '', path = '';
+  for (const v of [0, top / 2, top]) g += `<line class="grid" x1="${Lp}" x2="${W - Rp}" y1="${y(v)}" y2="${y(v)}"/><text x="${Lp - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  const every = Math.ceil(bs.length / 7);
   bs.forEach((b, i) => {
-    const x = L + i * bw;
-    if (b.f > 0) bars += `<rect class="barr" x="${x + bw * 0.15}" y="${y(b.f)}" width="${bw * 0.7}" height="${y(0) - y(b.f)}" rx="2"><title>${byMonth ? (b.start.getMonth() + 1) + '/' + b.start.getFullYear() : ddmm(b.start)}: ${b.f.toFixed(1)} h von ${b.t.toFixed(1)} h</title></rect>`;
+    const x = Lp + i * bw;
+    if (b.f > 0) bars += `<rect class="barr" style="animation-delay:${i * 25}ms" x="${x + bw * 0.16}" y="${y(b.f)}" width="${bw * 0.68}" height="${y(0) - y(b.f)}" rx="${Math.min(6, bw * 0.2)}"><title>${b.f.toFixed(1)} h von ${b.t.toFixed(1)} h</title></rect>`;
     path += `${i ? 'L' : 'M'}${x} ${y(b.t)} L${x + bw} ${y(b.t)} `;
-    if (i % every === 0) g += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle">${byMonth ? ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][b.start.getMonth()] : bs.length <= 7 ? DAYS[dayIdx(b.start)] : b.start.getDate()}</text>`;
+    if (i % every === 0) g += `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${byMonth ? ['J','F','M','A','M','J','J','A','S','O','N','D'][b.start.getMonth()] : bs.length <= 7 ? DAYS[dayIdx(b.start)] : b.start.getDate()}</text>`;
   });
-  return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Fastenstunden pro ${byMonth ? 'Monat' : 'Tag'} mit Soll-Linie">${g}${bars}<path class="target" d="${path}"/></svg></div>
-    <div class="legend"><span style="--c:var(--eat)">Gefastet (Stunden)</span><span style="--c:var(--fast-ink)">Soll laut Plan</span></div>`;
+  return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gefastete Stunden mit Soll-Linie"><defs><linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fe3d0"/><stop offset="1" stop-color="#2a7f9e"/></linearGradient></defs>${g}${bars}<path class="target" d="${path}"/></svg></div>
+  <div class="legend"><span><i style="background:linear-gradient(#5fe3d0,#2a7f9e)"></i>Gefastet (Stunden)</span><span><i style="background:#f6ecc8"></i>Soll laut Plan</span></div>`;
 }
-
-function renderReport() {
-  document.querySelectorAll('#periodCtrl button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.period === period)));
-  $('jokerInput').value = state.jokers;
-  const realNow = new Date();
-  if (!state.sessions.length) {
-    $('reportBody').innerHTML = `<p class="sub">${state.planSaved ? 'Noch keine abgeschlossene Fastenphase. Sobald die erste vorbei ist, erscheint sie hier.' : 'Übernimm im Tab Plan deinen Plan, dann startet die Aufzeichnung.'} Zum Ausprobieren kannst du unten Beispieldaten laden.</p>`;
-  } else {
-    const r = report(period, state.sessions, realNow, state.jokers);
-    const rate = r.n ? Math.round(r.ok / r.n * 100) : 0;
-    $('reportBody').innerHTML = `
-      <div class="kpis">
-        <div class="kpi"><span class="label">Gefastet</span><b>${Math.round(r.fasted)} h</b><small>Soll ${Math.round(r.target)} h</small></div>
-        <div class="kpi"><span class="label">Ziel erreicht</span><b>${rate} %</b><small>${r.ok} von ${r.n} Phasen</small></div>
-        <div class="kpi"><span class="label">Serie</span><b>${r.streak.days} Tage</b><small>${r.streak.left} von ${state.jokers} Jokern übrig</small></div>
-        <div class="kpi"><span class="label">Höhenmeter</span><b>${Math.round(r.fasted)} m</b><small>${Math.round(r.fasted / 330 * 100)} % vom Eiffelturm (330 m)</small></div>
-      </div>
-      ${barChart(buckets(period, state.sessions, realNow), period === 'year')}
-      <p class="sub" style="margin:0;font-size:13px">Lange Fastenzeit über 16 h im Zeitraum: ${hoursText(Math.round(r.long * 60))}. Ein verfehlter Tag verbraucht einen Joker, die Serie läuft dann weiter.</p>`;
-  }
-  const recent = state.sessions.slice(-10).reverse();
-  $('sessions').innerHTML = recent.length ? recent.map(s => {
-    const st = new Date(s.start), pe = new Date(s.plannedEnd), ok = sGoal(s);
-    return `<li>
-      <span class="mono">${DAYS[dayIdx(pe)]} ${ddmm(pe)}</span>
-      <span class="grow">${DAYS[dayIdx(st)]} ${hhmm(st)} → ${DAYS[dayIdx(pe)]} ${hhmm(pe)} · Ziel ${hoursText(sTarget(s))} · <span class="${ok ? 'ok' : 'miss'}">${ok ? 'geschafft' : 'nach ' + hoursText(sFasted(s)) + ' beendet'}</span></span>
-      <details${s.actualEnd ? ' open' : ''}><summary>${s.actualEnd ? 'Ende ändern' : 'Früher gegessen?'}</summary>
-        <span class="row" style="align-items:center">
-          <input type="datetime-local" id="ae_${s.id}" aria-label="Tatsächlich gegessen um" value="${toLocalInput(new Date(sEnd(s)))}" min="${toLocalInput(st)}" max="${toLocalInput(pe)}">
-          <button type="button" data-act="early" data-id="${s.id}">Speichern</button>
-          ${s.actualEnd ? `<button type="button" class="link" data-act="reset" data-id="${s.id}">Zurücksetzen</button>` : ''}
-        </span></details></li>`;
-  }).join('') : '<li>Noch keine Einträge.</li>';
-}
-
-function lineChart(points) {
-  const W = 640, H = 200, L = 40, Rr = 10, T = 10, B = 24;
-  const vals = points.flatMap(p => [p.kg, p.trend]);
-  const lo = Math.floor(Math.min(...vals) - 0.5), hi = Math.ceil(Math.max(...vals) + 0.5);
-  const t0 = points[0].date.getTime(), t1 = Math.max(points[points.length - 1].date.getTime(), t0 + 86400000);
-  const x = t => L + (W - L - Rr) * (t - t0) / (t1 - t0);
-  const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
-  let g = '';
-  for (const v of [lo, (lo + hi) / 2, hi]) g += `<line class="grid" x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${v.toFixed(1)}</text>`;
-  g += `<text x="${L}" y="${H - 8}">${ddmm(points[0].date)}</text><text x="${W - Rr}" y="${H - 8}" text-anchor="end">${ddmm(points[points.length - 1].date)}</text>`;
-  const pts = points.map(p => `<circle class="pt" cx="${x(p.date.getTime())}" cy="${y(p.kg)}" r="3"><title>${ddmm(p.date)}: ${p.kg.toFixed(1)} kg</title></circle>`).join('');
-  const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(p.date.getTime())} ${y(p.trend)}`).join(' ');
-  return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gewichtsverlauf mit Trendlinie">${g}${pts}<path class="trend" d="${line}"/></svg></div>
-    <div class="legend"><span style="--c:var(--muted)">Messung</span><span style="--c:var(--eat)">Trend</span></div>`;
-}
-
-function renderWeight() {
-  if (!$('wDate').value) $('wDate').value = toDateInput(new Date());
-  const pts = emaTrend(state.weights);
-  if (!pts.length) { $('weightBody').innerHTML = '<p class="sub">Noch keine Messung. Trag oben dein heutiges Gewicht ein.</p>'; return; }
-  const last = pts[pts.length - 1], firstT = pts[0].trend;
-  const diff = last.trend - firstT;
-  $('weightBody').innerHTML = `
-    <div class="kpis">
-      <div class="kpi"><span class="label">Trend</span><b>${last.trend.toFixed(1)} kg</b><small>${diff <= 0 ? '−' : '+'}${Math.abs(diff).toFixed(1)} kg seit ${ddmm(pts[0].date)}</small></div>
-      <div class="kpi"><span class="label">Letzte Messung</span><b>${last.kg.toFixed(1)} kg</b><small>${DAYS[dayIdx(last.date)]} ${ddmm(last.date)}</small></div>
+function viewAnalyse() {
+  const real = new Date();
+  const seg = `<div class="row">${[['week', 'Woche'], ['month', 'Monat'], ['year', 'Jahr']].map(([k, l]) => `<button type="button" class="chip" data-period="${k}" aria-pressed="${analysePeriod === k}">${l}</button>`).join('')}</div>`;
+  let body;
+  if (!state.sessions.length) body = `<div class="card"><h2>Noch keine Daten</h2><p class="muted">Sobald deine erste Fastenphase vorbei ist, erscheint sie hier. Zum Ausprobieren kannst du Beispieldaten laden.</p></div>`;
+  else {
+    const r = report(analysePeriod, state.sessions, real, state.jokers), rate = r.n ? Math.round(r.ok / r.n * 100) : 0;
+    body = `<div class="kpis">
+      <div class="tile"><span>Gefastet</span><b data-count="${Math.round(r.fasted)}" data-suffix=" h">0 h</b><small>Soll ${Math.round(r.target)} h</small></div>
+      <div class="tile"><span>Geschafft</span><b data-count="${rate}" data-suffix=" %">0 %</b><small>${r.ok} von ${r.n} Phasen</small></div>
+      <div class="tile"><span>Serie</span><b data-count="${r.streak.days}" data-suffix=" Tage">0 Tage</b><small>${r.streak.left} von ${state.jokers} Jokern übrig</small></div>
+      <div class="tile"><span>Höhenmeter</span><b data-count="${Math.round(r.fasted)}" data-suffix=" m">0 m</b><small>${Math.round(r.fasted / 330 * 100)} % Eiffelturm</small></div>
     </div>
-    ${pts.length > 1 ? lineChart(pts) : ''}
-    <ul class="list sess">${state.weights.slice(-8).reverse().map(w => `<li><span class="mono">${ddmm(new Date(w.date))}</span><span class="grow mono">${Number(w.kg).toFixed(1)} kg</span><button type="button" class="link" data-act="delw" data-id="${w.id}">Löschen</button></li>`).join('')}</ul>`;
+    <div class="card"><h2>Fastenstunden</h2>${barChart(buckets(analysePeriod, state.sessions, real), analysePeriod === 'year')}
+      <p class="muted small">Über 16 h hinaus gefastet: ${hoursText(Math.round(r.long * 60))}. Ein verfehlter Tag verbraucht einen Joker, die Serie läuft dann weiter.</p></div>`;
+  }
+  const recent = state.sessions.slice(-8).reverse();
+  return `<div class="top"><div><p class="eyebrow">Deine Fasten-Analysen</p><h1>Analyse</h1></div></div>
+  <div class="stack">${seg}${body}
+    <div class="card"><h2>Letzte Fastenphasen</h2>
+      <ul class="sess">${recent.length ? recent.map((s, k) => {
+        const st = new Date(s.start), pe = new Date(s.plannedEnd), ok = sGoal(s);
+        return `<li style="animation-delay:${k * 40}ms"><div class="row between"><span class="mono">${DAYS[dayIdx(st)]} ${hhmm(st)} → ${DAYS[dayIdx(pe)]} ${hhmm(pe)}</span><span class="${ok ? 'ok' : 'miss'}">${ok ? 'geschafft' : 'nach ' + hoursText(sFasted(s))}</span></div>
+          <details${s.actualEnd ? ' open' : ''}><summary>${s.actualEnd ? 'Ende ändern' : 'Früher gegessen?'}</summary>
+          <div class="row"><input type="datetime-local" id="ae_${s.id}" aria-label="Tatsächlich gegessen um" value="${toLocalInput(new Date(sEnd(s)))}" min="${toLocalInput(st)}" max="${toLocalInput(pe)}">
+          <button type="button" data-act="early" data-id="${s.id}">Speichern</button>${s.actualEnd ? `<button type="button" class="link" data-act="reset" data-id="${s.id}">Zurücksetzen</button>` : ''}</div></details></li>`;
+      }).join('') : '<li class="muted">Noch keine Einträge.</li>'}</ul>
+      <div class="row"><button type="button" id="demoBtn">Beispieldaten laden</button><button type="button" class="danger" id="clearBtn">Verlauf löschen</button></div>
+      <div class="row" id="clearConfirm" hidden><span class="small">Alle Fastenphasen und Gewichte löschen?</span><button type="button" class="danger" id="clearYes">Ja, löschen</button><button type="button" class="ghost" id="clearNo">Abbrechen</button></div>
+    </div></div>`;
 }
 
-function renderReminders() {
-  const lead = Math.min(120, Math.max(5, +$('leadInput').value || 30));
-  const list = plannedReminders(new Date(), state.plan, lead, 8);
-  $('reminders').innerHTML = list.length
-    ? list.map(r => `<li><span class="when">${DAYS[dayIdx(r.at)]} ${ddmm(r.at)} ${hhmm(r.at)}</span><b>${r.title}</b><span class="b">${r.body}</span></li>`).join('')
-    : '<li>Keine Erinnerungen geplant.</li>';
+function lineChart(pts) {
+  const W = 400, H = 220, Lp = 44, Rp = 10, T = 12, B = 28;
+  const vals = pts.flatMap(p => [p.kg, p.trend]);
+  const lo = Math.floor(Math.min(...vals) - 0.5), hi = Math.ceil(Math.max(...vals) + 0.5);
+  const t0 = pts[0].date.getTime(), t1 = Math.max(pts[pts.length - 1].date.getTime(), t0 + 86400000);
+  const x = t => Lp + (W - Lp - Rp) * (t - t0) / (t1 - t0), y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  let g = '';
+  for (const v of [lo, (lo + hi) / 2, hi]) g += `<line class="grid" x1="${Lp}" x2="${W - Rp}" y1="${y(v)}" y2="${y(v)}"/><text x="${Lp - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(1)}</text>`;
+  g += `<text x="${Lp}" y="${H - 6}">${ddmm(pts[0].date)}</text><text x="${W - Rp}" y="${H - 6}" text-anchor="end">${ddmm(pts[pts.length - 1].date)}</text>`;
+  const dots = pts.map(p => `<circle class="pt" cx="${x(p.date.getTime())}" cy="${y(p.kg)}" r="4"><title>${ddmm(p.date)}: ${p.kg.toFixed(1)} kg</title></circle>`).join('');
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.date.getTime())} ${y(p.trend)}`).join(' ');
+  return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gewicht mit Trendlinie">${g}${dots}<path class="trend" pathLength="1" d="${line}"/></svg></div>
+  <div class="legend"><span><i style="background:#7fb6ff"></i>Messung</span><span><i style="background:#5fe3d0"></i>Trend</span></div>`;
+}
+function viewGewicht() {
+  const pts = emaTrend(state.weights);
+  let body = '';
+  if (pts.length) {
+    const last = pts[pts.length - 1], d = last.trend - pts[0].trend;
+    body = `<div class="kpis">
+      <div class="tile"><span>Trend</span><b data-count="${last.trend.toFixed(1)}" data-dec="1" data-suffix=" kg">0 kg</b><small>${d <= 0 ? '−' : '+'}${Math.abs(d).toFixed(1)} kg seit ${ddmm(pts[0].date)}</small></div>
+      <div class="tile"><span>Zuletzt</span><b data-count="${last.kg.toFixed(1)}" data-dec="1" data-suffix=" kg">0 kg</b><small>${DAYS[dayIdx(last.date)]} ${ddmm(last.date)}</small></div></div>
+    ${pts.length > 1 ? `<div class="card"><h2>Verlauf</h2>${lineChart(pts)}</div>` : ''}
+    <div class="card"><h3>Letzte Einträge</h3><ul class="sess">${state.weights.slice(-6).reverse().map((w, k) => `<li style="animation-delay:${k * 40}ms"><div class="row between"><span class="mono">${ddmm(new Date(w.date))} · ${Number(w.kg).toFixed(1)} kg</span><button type="button" class="link" data-act="delw" data-id="${w.id}">Löschen</button></div></li>`).join('')}</ul></div>`;
+  }
+  return `<div class="top"><div><p class="eyebrow">Dein Trend</p><h1>Gewicht</h1></div></div>
+  <div class="stack"><div class="card">
+    <form class="stack" id="weightForm">
+      <div class="row"><label class="field" style="flex:1 1 140px">Datum<input type="date" id="wDate" value="${toDateInput(new Date())}" required></label>
+      <label class="field" style="flex:1 1 120px">Kilogramm<input type="number" id="wKg" min="30" max="350" step="0.1" placeholder="z. B. 78,4" required></label></div>
+      <button type="submit" class="primary">Gewicht eintragen</button>
+    </form>
+    <p class="muted small">Die Trendlinie glättet Tagesschwankungen durch Wasser und Salz. Ein Eintrag pro Tag, ein neuer ersetzt den alten.</p>
+  </div>${body}</div>`;
 }
 
-function currentTab() { const t = location.hash.slice(1); return ['heute','plan','auswertung','gewicht','erinnerungen'].includes(t) ? t : 'heute'; }
-function renderTabs() {
-  const t = currentTab();
-  document.querySelectorAll('[data-view]').forEach(v => { v.hidden = v.dataset.view !== t; });
-  document.querySelectorAll('nav.tabs a').forEach(a => { if (a.dataset.tab === t) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+function viewProfil() {
+  const lead = profilLead;
+  const rem = plannedReminders(new Date(), state.plan, lead, 6);
+  return `<div class="top"><div><p class="eyebrow">Du & FastFlow</p><h1>Profil</h1></div></div>
+  <div class="stack">
+    <div class="card"><h2>Name</h2>
+      <div class="row"><input type="text" id="nameInput" maxlength="30" value="${esc(state.profile?.name || '')}" aria-label="Dein Name" style="flex:1 1 180px"><button type="button" id="saveName">Speichern</button></div></div>
+    <div class="card"><h2>Erinnerungen</h2>
+      <p class="muted small">So würde dich die iOS-App erinnern. Diese Webseite selbst kann keine Mitteilungen senden.</p>
+      <label class="field">Vorlauf vor Fensterende (Minuten)<input type="number" id="leadInput" min="5" max="120" step="5" value="${lead}" style="width:8em"></label>
+      <ul class="sess">${rem.length ? rem.map((r, k) => `<li style="animation-delay:${k * 40}ms"><span class="mono muted">${DAYS[dayIdx(r.at)]} ${ddmm(r.at)} · ${hhmm(r.at)}</span><b>${r.title}</b><span class="muted small">${r.body}</span></li>`).join('') : '<li class="muted">Keine Erinnerungen geplant.</li>'}</ul></div>
+    <div class="card"><h2>Serie & Joker</h2>
+      <label class="field">Joker (verfehlte Tage, die die Serie nicht abreißen lassen)<input type="number" id="jokerInput" min="0" max="10" step="1" value="${state.jokers}" style="width:8em"></label></div>
+    <div class="card"><h2>Testmodus</h2>
+      <p class="muted small">Springe in der Heute-Ansicht zu einer anderen Uhrzeit, um deinen Plan auszuprobieren.</p>
+      <div class="row"><input type="datetime-local" id="simInput" value="${toLocalInput(now)}" aria-label="Testzeit"><button type="button" data-step="-60">−1 h</button><button type="button" data-step="60">+1 h</button><button type="button" data-step="1440">+1 Tag</button><button type="button" id="simNow">Echte Zeit</button></div>
+      ${simulated ? `<p class="small">Testzeit aktiv: ${FULL[dayIdx(now)]} ${ddmm(now)} ${hhmm(now)} Uhr</p>` : ''}</div>
+    <div class="card"><h2>Gesundheit</h2>
+      <p class="small">FastFlow ist nur für Erwachsene und ersetzt keine ärztliche Beratung. Bei Schwangerschaft, Stillzeit, Essstörungen (auch früher), Diabetes oder regelmäßigen Medikamenten bitte vorher ärztlichen Rat einholen. Bei Schwindel, Unwohlsein oder starkem Hunger: Fasten beenden und etwas essen.</p></div>
+    <div class="card"><h2>Speicher</h2><p class="small muted">${store.mode === 'db' ? 'Deine Daten liegen privat in deinem claude.ai-Konto.' : 'Deine Daten liegen nur in diesem Browser.'}${store.notice ? ' ' + esc(store.notice) : ''}</p>
+      <button type="button" class="danger" id="resetAll">Alles zurücksetzen</button>
+      <div class="row" id="resetConfirm" hidden><span class="small">Profil, Plan, Verlauf und Gewichte löschen und neu einrichten?</span><button type="button" class="danger" id="resetYes">Ja, alles löschen</button><button type="button" class="ghost" id="resetNo">Abbrechen</button></div></div>
+  </div>`;
 }
-function renderAll() {
-  if (!simulated) { now = new Date(); now.setSeconds(0, 0); }
-  $('simInput').value = toLocalInput(now);
-  renderTabs(); renderStatus(); renderWeek(); renderPlan(); renderReport(); renderWeight(); renderReminders();
-}
+let profilLead = 30;
 
-// ---- Ereignisse ----
-window.addEventListener('hashchange', renderTabs);
-$('rules').addEventListener('change', e => {
-  const t = e.target, i = +t.dataset.i, k = t.dataset.k;
-  if (k === undefined) return;
-  if (k === 'enabled') state.plan[i].enabled = t.checked; else if (t.value) state.plan[i][k] = toM(t.value);
-  schedulePlanSave(); renderAll(); recordCompleted();
+// ================= Onboarding =================
+const ob = { step: 0, name: '', adult: false, health: false, preset: 'p16', blocked: false };
+function renderOnboarding() {
+  const p = $('obPanel');
+  const dots = `<div class="dots" aria-hidden="true">${[0, 1, 2, 3, 4].map(i => `<i class="${i === ob.step ? 'on' : ''}"></i>`).join('')}</div>`;
+  let html = '';
+  if (ob.blocked) {
+    html = `<div class="hero"><div class="otterbtn" data-otter></div><h1>FastFlow ist nur für Erwachsene</h1></div>
+      <p class="muted" style="text-align:center">Fasten ist für Kinder und Jugendliche nicht geeignet, weil der Körper noch wächst. Wenn du Fragen zur Ernährung hast, sprich mit deinen Eltern oder einer Ärztin.</p>
+      <button type="button" class="ghost" id="obBack">Zurück</button>`;
+  } else if (ob.step === 0) {
+    html = `<div class="hero"><div class="otterbtn" data-otter></div><p class="eyebrow">Willkommen bei FastFlow</p><h1>Hallo! Ich bin Flo.</h1></div>
+      <p style="text-align:center">Ich bin ein neugieriger Seeotter und lerne gerade alles über Intervallfasten. Bei mir heißt Fasten <b>Ebbe</b> und Essen <b>Flut</b>. Ich begleite dich durch deine Gezeiten.</p>
+      ${dots}<button type="button" class="primary" id="obNext">Los geht's</button>`;
+  } else if (ob.step === 1) {
+    html = `<div class="hero"><div class="otterbtn" data-otter></div><h1>Wie darf ich dich nennen?</h1></div>
+      <label class="field">Dein Vorname oder Spitzname<input type="text" id="obName" maxlength="30" autocomplete="given-name" value="${esc(ob.name)}" placeholder="z. B. Alex"></label>
+      ${dots}<div class="row between"><button type="button" class="ghost" id="obPrev">Zurück</button><button type="button" class="primary" id="obNext" ${ob.name.trim() ? '' : 'disabled'}>Weiter</button></div>`;
+  } else if (ob.step === 2) {
+    html = `<div class="hero"><h1>Kurz und wichtig, ${esc(ob.name.trim())}</h1></div>
+      <label class="check"><input type="checkbox" id="obAdult" ${ob.adult ? 'checked' : ''}><span>Ich bin <b>mindestens 18 Jahre alt</b>.</span></label>
+      <label class="check"><input type="checkbox" id="obHealth" ${ob.health ? 'checked' : ''}><span>Ich weiß: FastFlow ersetzt keine ärztliche Beratung. Bei Schwangerschaft, Stillzeit, Essstörungen (auch früher), Diabetes oder regelmäßigen Medikamenten spreche ich vorher mit einer Ärztin oder einem Arzt.</span></label>
+      ${dots}<div class="row between"><button type="button" class="ghost" id="obPrev">Zurück</button><button type="button" class="primary" id="obNext" ${ob.adult && ob.health ? '' : 'disabled'}>Weiter</button></div>
+      <button type="button" class="link" id="obMinor">Ich bin jünger als 18</button>`;
+  } else if (ob.step === 3) {
+    html = `<div class="hero"><h1>Welcher Rhythmus passt zu dir?</h1><p class="muted">Du kannst später jeden Tag einzeln ändern, auch Fenster über Mitternacht.</p></div>
+      <div class="choices">${Object.entries(PRESETS).map(([k, pr]) => `<button type="button" class="choice" data-choice="${k}" aria-pressed="${ob.preset === k}"><b>${pr.title}</b><span>${pr.sub}</span></button>`).join('')}</div>
+      ${dots}<div class="row between"><button type="button" class="ghost" id="obPrev">Zurück</button><button type="button" class="primary" id="obNext">Weiter</button></div>`;
+  } else {
+    html = `<div class="hero"><div class="otterbtn" data-otter></div><h1>Perfekt, ${esc(ob.name.trim())}!</h1></div>
+      <p style="text-align:center">Dein Rhythmus <b>${PRESETS[ob.preset].title}</b> steht. Ich hab ihn in mein Notizbuch geschrieben und zeige dir jetzt deine erste Gezeit.</p>
+      ${dots}<button type="button" class="primary" id="obFinish">FastFlow starten</button>`;
+  }
+  p.innerHTML = html; p.classList.remove('pop'); void p.offsetWidth; p.classList.add('pop');
+  mountOtters();
+  const nameEl = $('obName'); if (nameEl) { nameEl.focus(); nameEl.addEventListener('input', () => { ob.name = nameEl.value; $('obNext').disabled = !ob.name.trim(); }); nameEl.addEventListener('keydown', e => { if (e.key === 'Enter' && ob.name.trim()) { ob.step++; renderOnboarding(); } }); }
+}
+$('obPanel').addEventListener('change', e => {
+  if (e.target.id === 'obAdult') ob.adult = e.target.checked;
+  if (e.target.id === 'obHealth') ob.health = e.target.checked;
+  const n = $('obNext'); if (n && ob.step === 2) n.disabled = !(ob.adult && ob.health);
 });
-$('planNotice').addEventListener('click', e => { if (e.target.id === 'adoptPlan') { schedulePlanSave(); renderAll(); setTimeout(recordCompleted, 600); } });
-$('presetExample').addEventListener('click', () => { state.plan = exampleRules(); schedulePlanSave(); renderAll(); });
-$('presetSame').addEventListener('click', () => { state.plan = sameRules(); schedulePlanSave(); renderAll(); });
-$('simInput').addEventListener('change', e => { if (e.target.value) { now = new Date(e.target.value); simulated = true; renderAll(); } });
-$('simNow').addEventListener('click', () => { simulated = false; renderAll(); });
-document.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => { now = new Date(now.getTime() + (+b.dataset.step) * 60000); simulated = true; renderAll(); }));
-$('periodCtrl').addEventListener('click', e => { const p = e.target.dataset?.period; if (p) { period = p; renderReport(); } });
-$('jokerInput').addEventListener('change', e => { const v = Math.min(10, Math.max(0, Math.round(+e.target.value || 0))); state.jokers = v; schedulePlanSave(); renderAll(); });
-$('leadInput').addEventListener('change', renderReminders);
-$('sessions').addEventListener('click', async e => {
+$('obPanel').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
-  const s = state.sessions.find(x => x.id === b.dataset.id); if (!s) return;
-  let actualEnd = null;
-  if (b.dataset.act === 'early') {
-    const v = $('ae_' + s.id).value; if (!v) return;
-    actualEnd = Math.min(Math.max(new Date(v).getTime(), s.start), s.plannedEnd);
-    if (actualEnd >= s.plannedEnd) actualEnd = null;
+  if (b.id === 'obNext') { ob.step++; renderOnboarding(); }
+  else if (b.id === 'obPrev') { ob.step--; renderOnboarding(); }
+  else if (b.id === 'obMinor') { ob.blocked = true; ob.adult = false; renderOnboarding(); }
+  else if (b.id === 'obBack') { ob.blocked = false; renderOnboarding(); }
+  else if (b.dataset.choice) { ob.preset = b.dataset.choice; document.querySelectorAll('.choice').forEach(c => c.setAttribute('aria-pressed', String(c === b))); }
+  else if (b.id === 'obFinish') {
+    b.disabled = true;
+    state.profile = { name: ob.name.trim().slice(0, 30), onboarded: true, since: Date.now() };
+    state.plan = PRESETS[ob.preset].rules(); state.planSaved = true;
+    try { await store.saveProfile(); await store.savePlan(); } catch (err) { toast('Speichern fehlgeschlagen, FastFlow läuft trotzdem'); }
+    $('onboard').hidden = true; showApp(); celebrate();
+    setTimeout(() => floSay(`Willkommen an Bord, ${state.profile.name}! Tipp mich an, wenn du mehr von mir hören willst. Ich hab immer was in meinem Notizbuch.`, { happy: true }), 500);
   }
-  try { await store.putSession({ ...s, actualEnd }); renderAll(); } catch (err) { showNotice('Änderung nicht gespeichert: ' + (err?.message || err?.code)); }
 });
-$('weightForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const d = $('wDate').value, kg = Math.round(parseFloat($('wKg').value) * 10) / 10;
-  if (!d || !(kg >= 20 && kg <= 400)) return;
-  const [y, m, dd] = d.split('-').map(Number), date = new Date(y, m - 1, dd, 8).getTime();
-  try { await store.putWeight({ id: 'w_' + d, date, kg }); $('wKg').value = ''; renderAll(); } catch (err) { showNotice('Gewicht nicht gespeichert: ' + (err?.message || err?.code)); }
-});
-$('weightBody').addEventListener('click', async e => {
-  const b = e.target.closest('button[data-act="delw"]'); if (!b) return;
-  try { await store.remove(b.dataset.id); renderAll(); } catch (err) { showNotice('Löschen fehlgeschlagen: ' + (err?.message || err?.code)); }
-});
-$('demoBtn').addEventListener('click', async () => {
-  const realNow = new Date();
-  const wins = fastingWindows(addDays(realNow, -14), realNow, state.plan);
-  let n = 0;
-  for (const w of wins) {
-    n++;
-    const broken = n % 5 === 0;
-    const s = { id: 's_' + w.start.getTime(), start: w.start.getTime(), plannedEnd: w.end.getTime(), actualEnd: broken ? w.end.getTime() - 3 * 3600000 : null };
-    await store.putSession(s);
-  }
-  for (let k = 14; k >= 0; k--) {
-    const d = addDays(realNow, -k), kg = Math.round((84 - (14 - k) * 0.15 + Math.sin(k * 1.7) * 0.6) * 10) / 10;
-    await store.putWeight({ id: 'w_' + toDateInput(d), date: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 8).getTime(), kg });
-  }
-  state.planSaved = true; schedulePlanSave();
-  renderAll();
-});
-$('clearBtn').addEventListener('click', () => { $('clearConfirm').hidden = false; });
-$('clearNo').addEventListener('click', () => { $('clearConfirm').hidden = true; });
-$('clearYes').addEventListener('click', async () => {
-  $('clearConfirm').hidden = true;
-  const ids = [...state.sessions.map(s => s.id), ...state.weights.map(w => w.id)];
-  for (const id of ids) { try { await store.remove(id); } catch (e) {} }
-  renderAll();
-});
-setInterval(() => { if (!simulated) renderAll(); }, 60000);
 
-renderAll();
+// ================= Steuerung =================
+function renderView(animate = true) {
+  if (!simulated) { now = new Date(); now.setSeconds(0, 0); }
+  const v = currentView();
+  document.querySelectorAll('.view-host').forEach(h => { h.hidden = h.dataset.view !== v; });
+  const host = document.querySelector(`.view-host[data-view="${v}"]`);
+  ringFromZero = animate;
+  host.innerHTML = { heute: viewHeute, plan: viewPlan, analyse: viewAnalyse, gewicht: viewGewicht, profil: viewProfil }[v]();
+  if (animate) { host.classList.remove('view'); void host.offsetWidth; host.classList.add('view'); }
+  document.querySelectorAll('.tabbar a').forEach(a => { if (a.dataset.tab === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  countUp(host);
+  if (v === 'heute') requestAnimationFrame(() => requestAnimationFrame(updateRing));
+  updateSea();
+}
+function refresh() {
+  if (!state.ready) return;
+  if (!state.profile) { if (!$('app').hidden) showOnboarding(); return; }
+  if ($('app').hidden) { showApp(); return; }
+  const active = document.activeElement;
+  if (active && active.matches('input') && currentView() !== 'heute') return;
+  renderView(false);
+}
+function showOnboarding() {
+  $('app').hidden = true; $('tabbar').hidden = true; $('buddy').hidden = true;
+  Object.assign(ob, { step: 0, name: '', adult: false, health: false, preset: 'p16', blocked: false });
+  $('onboard').hidden = false; renderOnboarding();
+}
+function showApp() {
+  $('onboard').hidden = true; $('app').hidden = false; $('tabbar').hidden = false; $('buddy').hidden = false;
+  mountOtters(); renderView(); recordCompleted();
+  setTimeout(() => floNext(currentView(), true), 700);
+}
+function boot() {
+  state.ready = true;
+  const sp = $('splash'); sp.style.opacity = '0'; setTimeout(() => sp.remove(), 500);
+  if (state.profile) showApp(); else showOnboarding();
+}
+
+window.addEventListener('hashchange', () => { if (!state.profile) return; renderView(); floNext(currentView(), true); window.scrollTo({ top: 0, behavior: REDUCE ? 'auto' : 'smooth' }); });
+$('otterBtn').addEventListener('click', () => {
+  const o = $('otterBtn').querySelector('.otter');
+  if (o && !REDUCE) { o.classList.remove('happy'); void o.getBoundingClientRect(); o.classList.add('happy'); setTimeout(() => o.classList.remove('happy'), 2200); }
+  floNext(currentView());
+});
+$('bubble').addEventListener('click', () => floNext(currentView()));
+
+$('app').addEventListener('change', async e => {
+  const t = e.target;
+  if (t.dataset.k !== undefined) {
+    const i = +t.dataset.i, k = t.dataset.k;
+    if (k === 'enabled') state.plan[i].enabled = t.checked; else if (t.value) state.plan[i][k] = toM(t.value);
+    t.blur(); savePlanSoon(); renderView(false);
+    const hints = validate(state.plan); if (hints.length) floSay(`Mir ist was aufgefallen: ${hints[0].msg}`);
+  } else if (t.id === 'simInput' && t.value) { now = new Date(t.value); simulated = true; renderView(false); toast('Testzeit gesetzt'); }
+  else if (t.id === 'leadInput') { profilLead = Math.min(120, Math.max(5, Math.round(+t.value || 30))); t.blur(); renderView(false); }
+  else if (t.id === 'jokerInput') { state.jokers = Math.min(10, Math.max(0, Math.round(+t.value || 0))); t.blur(); savePlanSoon(); }
+});
+$('app').addEventListener('submit', async e => {
+  if (e.target.id !== 'weightForm') return;
+  e.preventDefault();
+  const d = $('wDate').value, kg = Math.round(parseFloat(String($('wKg').value).replace(',', '.')) * 10) / 10;
+  if (!d || !(kg >= 30 && kg <= 350)) { toast('Bitte ein Gewicht zwischen 30 und 350 kg eintragen'); return; }
+  const [y, m, dd] = d.split('-').map(Number);
+  try { await store.putWeight({ id: 'w_' + d, date: new Date(y, m - 1, dd, 8).getTime(), kg }); document.activeElement?.blur(); toast('Gewicht eingetragen'); renderView(false); floNext('gewicht', true); }
+  catch (err) { toast('Gewicht nicht gespeichert'); }
+});
+$('app').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.preset) { state.plan = PRESETS[b.dataset.preset].rules(); savePlanSoon(); renderView(false); floSay(`Neuer Rhythmus: ${PRESETS[b.dataset.preset].title}. Ich hab mitgeschrieben!`); }
+  else if (b.dataset.period) { analysePeriod = b.dataset.period; renderView(false); floNext('analyse', true); }
+  else if (b.dataset.step) { now = new Date(now.getTime() + (+b.dataset.step) * 60000); simulated = true; renderView(false); toast('Testzeit: ' + DAYS[dayIdx(now)] + ' ' + hhmm(now)); }
+  else if (b.id === 'simNow') { simulated = false; renderView(false); toast('Echte Zeit'); }
+  else if (b.id === 'endEarly') { b.hidden = true; $('endConfirm').hidden = false; }
+  else if (b.id === 'endNo') { $('endConfirm').hidden = true; $('endEarly').hidden = false; }
+  else if (b.id === 'endYes') {
+    const snap = resolve(new Date(), state.plan);
+    if (snap && snap.mode === 'fasting') {
+      const real = Date.now();
+      await store.putSession({ id: 's_' + snap.start.getTime(), start: snap.start.getTime(), plannedEnd: snap.end.getTime(), actualEnd: real });
+      renderView(false);
+      floSay(`Notiert: nach ${hoursText(Math.floor((real - snap.start) / 60000))} beendet. Jede Ebbe zählt – die nächste kommt bestimmt.`);
+    }
+  }
+  else if (b.dataset.act === 'early' || b.dataset.act === 'reset') {
+    const s = state.sessions.find(x => x.id === b.dataset.id); if (!s) return;
+    let actualEnd = null;
+    if (b.dataset.act === 'early') { const v = $('ae_' + s.id).value; if (!v) return; actualEnd = Math.min(Math.max(new Date(v).getTime(), s.start), s.plannedEnd); if (actualEnd >= s.plannedEnd) actualEnd = null; }
+    await store.putSession({ ...s, actualEnd }); toast('Gespeichert'); renderView(false);
+  }
+  else if (b.dataset.act === 'delw') { await store.remove(b.dataset.id); toast('Eintrag gelöscht'); renderView(false); }
+  else if (b.id === 'demoBtn') {
+    const real = new Date(); let n = 0;
+    for (const w of fastingWindows(addDays(real, -14), real, state.plan)) {
+      n++; await store.putSession({ id: 's_' + w.start.getTime(), start: w.start.getTime(), plannedEnd: w.end.getTime(), actualEnd: n % 5 === 0 ? w.end.getTime() - 3 * 3600000 : null });
+    }
+    for (let k = 14; k >= 0; k--) { const d = addDays(real, -k); await store.putWeight({ id: 'w_' + toDateInput(d), date: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 8).getTime(), kg: Math.round((84 - (14 - k) * 0.15 + Math.sin(k * 1.7) * 0.6) * 10) / 10 }); }
+    toast('Beispieldaten geladen'); renderView(false); celebrate(); floNext('analyse', true);
+  }
+  else if (b.id === 'clearBtn') { $('clearConfirm').hidden = false; }
+  else if (b.id === 'clearNo') { $('clearConfirm').hidden = true; }
+  else if (b.id === 'clearYes') {
+    for (const id of [...state.sessions.map(s => s.id), ...state.weights.map(w => w.id)]) { try { await store.remove(id); } catch (err) {} }
+    toast('Verlauf gelöscht'); renderView(false);
+  }
+  else if (b.id === 'saveName') {
+    const v = $('nameInput').value.trim().slice(0, 30); if (!v) { toast('Bitte einen Namen eingeben'); return; }
+    state.profile.name = v; await store.saveProfile(); toast('Name gespeichert'); floSay(`Freut mich, ${v}! Hab's sofort in mein Notizbuch geschrieben.`, { happy: true });
+  }
+  else if (b.id === 'resetAll') { $('resetConfirm').hidden = false; }
+  else if (b.id === 'resetNo') { $('resetConfirm').hidden = true; }
+  else if (b.id === 'resetYes') {
+    for (const id of [...state.sessions.map(s => s.id), ...state.weights.map(w => w.id), 'plan', 'profile']) { try { await store.remove(id); } catch (err) {} }
+    Object.assign(state, { profile: null, planSaved: false, sessions: [], weights: [], plan: PRESETS.p16.rules() });
+    location.hash = '#heute'; showOnboarding();
+  }
+});
+
+setInterval(() => { if (!state.profile || $('app').hidden) return; if (!simulated) now = new Date(); if (currentView() === 'heute') updateRing(); }, 1000);
+setInterval(() => { if (state.profile && !simulated) { now = new Date(); now.setSeconds(0, 0); updateSea(); recordCompleted(); if (currentView() === 'heute') renderView(false); } }, 60000);
+
+mountOtters();
+initSea();
 store.init();
 </script>
