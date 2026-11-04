@@ -245,12 +245,16 @@ public final class WeeklyFastingPlan {
 
 // MARK: - 4. Biologische Phasen & Snapshot
 
+/// Grobe Orientierung, keine medizinische Aussage. Die Übergänge sind individuell
+/// sehr verschieden (Aktivität, letzte Mahlzeit, Stoffwechsel) – im UI `disclaimer` anzeigen.
 public enum MetabolicStage: String, Sendable {
-    case anabolicEating = "Nährstoffaufnahme (Essensfenster)"
-    case postAbsorptive = "Blutzucker-Stabilisierung (0–4h)"
-    case glycogenolysis = "Blutzucker-Reset & Glykogen-Abbau (4–12h)"
-    case ketosisOnset   = "Fettverbrennung & milde Ketose (12–16h)"
-    case autophagyPulse = "Zellreinigung & Autophagie-Impuls (16h+)"
+    case anabolicEating = "Essensfenster"
+    case postAbsorptive = "Verdauung läuft (ca. 0–4 h)"
+    case glycogenolysis = "Körper nutzt Glykogenspeicher (ca. 4–12 h)"
+    case ketosisOnset   = "Fettstoffwechsel nimmt zu (ca. 12–16 h)"
+    case autophagyPulse = "Langes Fasten (16 h+)"
+
+    public static let disclaimer = "Richtwerte zur Orientierung, individuell verschieden. Keine medizinische Beratung."
 }
 
 public struct ResolvedFastingSnapshot: Sendable {
