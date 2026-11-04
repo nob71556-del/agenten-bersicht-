@@ -102,7 +102,7 @@ struct FastingStatusCard: View {
     private func dayTime(_ date: Date) -> String {
         let day = Weekday(date: date, calendar: calendar).shortLocalizedName
         let c = calendar.dateComponents([.hour, .minute], from: date)
-        return String(format: "%@ %02d:%02d", day, c.hour ?? 0, c.minute ?? 0)
+        return day + " " + String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 
     static func durationText(_ interval: TimeInterval) -> String {

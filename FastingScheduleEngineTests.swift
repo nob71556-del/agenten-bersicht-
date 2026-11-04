@@ -129,3 +129,42 @@ struct FastingScheduleEngineTests {
         #expect(plan.rule(for: .friday).isEnabled == false)
     }
 }
+
+@Suite("FastingNotificationScheduler")
+struct FastingNotificationSchedulerTests {
+    let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+
+    func window(startIn hours: Double, length: Double) -> DateInterval {
+        DateInterval(start: t0.addingTimeInterval(hours * 3600), duration: length * 3600)
+    }
+
+    @Test func plansOpenAndCloseReminders() {
+        let settings = FastingNotificationSettings(isEnabled: true, leadTimeMinutes: 30)
+        let planned = FastingNotificationScheduler.plannedNotifications(
+            windows: [window(startIn: 2, length: 6)], settings: settings, now: t0)
+        #expect(planned.count == 2)
+        #expect(planned[0].fireDate == t0.addingTimeInterval(2 * 3600))
+        #expect(planned[1].fireDate == t0.addingTimeInterval(7.5 * 3600))
+    }
+
+    @Test func skipsPastAndDisabled() {
+        // Fenster läuft bereits: nur „schließt bald“
+        let open = FastingNotificationScheduler.plannedNotifications(
+            windows: [window(startIn: -1, length: 6)],
+            settings: FastingNotificationSettings(isEnabled: true), now: t0)
+        #expect(open.map(\.identifier).allSatisfy { $0.contains("close") })
+
+        let off = FastingNotificationScheduler.plannedNotifications(
+            windows: [window(startIn: 2, length: 6)],
+            settings: FastingNotificationSettings(isEnabled: false), now: t0)
+        #expect(off.isEmpty)
+    }
+
+    @Test func respectsPendingLimit() {
+        let windows = (0..<100).map { window(startIn: Double($0) * 24 + 1, length: 6) }
+        let planned = FastingNotificationScheduler.plannedNotifications(
+            windows: windows, settings: FastingNotificationSettings(isEnabled: true), now: t0)
+        #expect(planned.count == FastingNotificationScheduler.maxPending)
+        #expect(planned == planned.sorted { $0.fireDate < $1.fireDate })
+    }
+}

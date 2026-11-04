@@ -7,7 +7,13 @@ Wird stündlich automatisch abgearbeitet: jeweils der erste offene Punkt, danach
 - [x] Tests (`FastingScheduleEngineTests.swift`)
 - [x] Editor für Tagesregeln (`FastingPlanEditorView.swift`)
 - [x] Dashboard mit Status und Wochenband (`FastingDashboardView.swift`)
-- [ ] Lokale Benachrichtigungen: Erinnerung vor Ende/Beginn des Essensfensters (Vorlaufzeit einstellbar), bei Planänderung neu planen, max. 64 ausstehende Notifications beachten
-- [ ] App-Einstieg `FastFlowApp.swift`: ModelContainer, Beispielplan anlegen wenn leer, TabView Heute/Plan, aktiver Plan per `@Query`
-- [ ] Selbst-Review aller Swift-Dateien auf Compilerfehler und API-Verfügbarkeit (iOS 18), gefundene Fehler beheben
-- [ ] `README.md`: Dateien, Einbindung in ein Xcode-Projekt, Tests ausführen, Web-App-Link
+- [x] Lokale Benachrichtigungen (`FastingNotificationScheduler.swift`) inkl. Tests
+- [x] App-Einstieg `FastFlowApp.swift` mit Tabs Heute / Plan / Erinnerungen
+- [x] Selbst-Review: MainActor-Isolation im Scheduler, `String(format:)` mit `%@` entfernt
+- [x] `README.md`
+- [ ] Verlauf: abgeschlossene Fastenphasen als `@Model FastingSessionRecord` speichern (Start, Ende, Plan-Soll), Streak-Berechnung mit Jokern, Tests
+- [ ] Auswertung: `FastingReportSummary` aus dem Verlauf für Woche/Monat/Jahr berechnen (Ist vs. Soll), Tests
+- [ ] Report-View: Woche/Monat/Jahr mit Swift Charts (Fastenstunden pro Tag, Soll-Linie), Streak-Anzeige
+- [ ] Gewicht aus HealthKit lesen (bodyMass), geglätteter Trend (EMA), Tests für EMA; Info.plist-Hinweis in README
+- [ ] Widget (WidgetKit) mit Status und Restzeit, nutzt die Engine; Anleitung für App Group in README
+- [ ] Web-App angleichen: Erinnerungsvorschau (welche Mitteilungen wann) und Dashboard-Texte wie in Swift

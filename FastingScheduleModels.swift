@@ -411,14 +411,26 @@ public final class FastingScheduleEngine {
         }
     }
 
+    /// Alle Essensfenster, die nach `date` enden, für die nächsten `days` Tage
+    /// (z. B. für Benachrichtigungen). Ein gerade offenes Fenster ist enthalten.
+    public func upcomingEatingWindows(after date: Date, plan: WeeklyFastingPlan, days: Int = 14) -> [DateInterval] {
+        eatingIntervals(around: date, plan: plan, dayRange: -1...max(days, 1))
+            .filter { $0.end > date }
+            .map { DateInterval(start: $0.start, end: $0.end) }
+    }
+
     // MARK: Intervall-Erzeugung
 
     /// Konkrete Essensfenster von 2 Tagen vor bis 8 Tage nach `date`, sortiert und überlappungsfrei.
-    private func eatingIntervals(around date: Date, plan: WeeklyFastingPlan) -> [EatingInterval] {
+    private func eatingIntervals(
+        around date: Date,
+        plan: WeeklyFastingPlan,
+        dayRange: ClosedRange<Int> = -2...8
+    ) -> [EatingInterval] {
         let startOfToday = calendar.startOfDay(for: date)
         var result: [EatingInterval] = []
 
-        for offset in -2...8 {
+        for offset in dayRange {
             guard let day = calendar.date(byAdding: .day, value: offset, to: startOfToday) else { continue }
             let rule = plan.rule(for: Weekday(date: day, calendar: calendar))
             guard rule.isEnabled else { continue }
