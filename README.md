@@ -14,7 +14,14 @@ auch über Mitternacht (z. B. Sa 17:00 bis So 02:00).
 | `FastingDashboardView.swift` | Heute-Ansicht: Status, Fortschrittsring, Wochenband |
 | `FastingPlanEditorView.swift` | Editor für die 7 Tagesregeln |
 | `FastingNotificationScheduler.swift` | Lokale Erinnerungen (Fenster öffnet / schließt bald) |
-| `FastFlowApp.swift` | App-Einstieg mit Tabs Heute / Plan / Erinnerungen |
+| `FastingHistory.swift` | Verlauf abgeschlossener Fastenphasen, Streak mit Jokern |
+| `FastingReport.swift` | Auswertung Woche / Monat / Jahr (Ist vs. Soll, Balken pro Tag/Monat) |
+| `FastingReportView.swift` | Auswertungs-Ansicht mit Swift Charts und Gewichtstrend |
+| `WeightTrend.swift` | Gewicht aus Apple Health lesen, geglätteter Trend |
+| `FastingPlanValidator.swift` | Hinweise im Editor (24-h-Fenster, kurze Pause, Überlappung) |
+| `SharedPlanStore.swift` | Teilt den Plan per App Group mit dem Widget (App- **und** Widget-Target) |
+| `FastFlowWidget/FastFlowWidget.swift` | Widget: Status, Live-Countdown, Fortschritt (nur Widget-Target) |
+| `FastFlowApp.swift` | App-Einstieg mit Tabs Heute / Plan / Auswertung / Erinnerungen |
 | `FastingScheduleEngineTests.swift` | Tests (Swift Testing) für Engine und Erinnerungsplanung |
 | `BACKLOG.md` | Offene Aufgaben |
 
@@ -29,6 +36,20 @@ auch über Mitternacht (z. B. Sa 17:00 bis So 02:00).
 
 Für Benachrichtigungen ist keine zusätzliche Capability nötig; die App fragt die Erlaubnis beim Einschalten im Tab „Erinnerungen“ an.
 
+### Apple Health (Gewicht)
+
+1. App-Target → Signing & Capabilities → **HealthKit** hinzufügen.
+2. In der Info.plist `NSHealthShareUsageDescription` setzen, z. B. „FastFlow liest dein Gewicht, um den Trend neben deinen Fastenzeiten zu zeigen.“
+3. Die App liest nur `bodyMass` und schreibt nichts.
+
+### Widget
+
+1. File → New → Target → **Widget Extension**, Name `FastFlowWidget`, „Include Configuration App Intent“ aus.
+2. Die erzeugte Swift-Datei durch `FastFlowWidget/FastFlowWidget.swift` ersetzen.
+3. `FastingScheduleModels.swift` und `SharedPlanStore.swift` zusätzlich dem Widget-Target zuordnen (Target Membership).
+4. In App- **und** Widget-Target unter Signing & Capabilities **App Groups** hinzufügen, ID `group.de.fastflow.shared`
+   (oder eigene ID, dann `SharedPlanStore.appGroupID` anpassen).
+
 ## Wie die Engine rechnet
 
 - Jede Tagesregel hat Start und Ende in Minuten ab 00:00. Ende ≤ Start bedeutet: Fenster läuft in den Folgetag.
@@ -39,7 +60,7 @@ Für Benachrichtigungen ist keine zusätzliche Capability nötig; die App fragt 
 
 ## Web-Version zum Testen
 
-Eine JavaScript-Portierung der Engine mit Editor und simulierter Uhrzeit liegt als privates Artifact vor:
+Eine JavaScript-Portierung der Engine mit Editor, Plan-Hinweisen, Erinnerungsvorschau und simulierter Uhrzeit liegt als privates Artifact vor:
 https://claude.ai/artifact/7SxG68pRCjRbnE9peZfg2q
 
 ## Hinweis

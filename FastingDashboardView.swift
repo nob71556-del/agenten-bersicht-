@@ -108,6 +108,7 @@ struct FastingStatusCard: View {
     static func durationText(_ interval: TimeInterval) -> String {
         let minutes = Int(interval / 60)
         let h = minutes / 60, m = minutes % 60
+        if h == 0 { return "\(m) min" }
         return m == 0 ? "\(h) h" : "\(h) h \(m) min"
     }
 }

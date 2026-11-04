@@ -8,6 +8,7 @@
 
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 @main
 struct FastFlowApp: App {
@@ -48,6 +49,9 @@ struct RootView: View {
                 Tab("Plan", systemImage: "calendar") {
                     NavigationStack { FastingPlanEditorView(plan: plan) }
                 }
+                Tab("Auswertung", systemImage: "chart.bar") {
+                    NavigationStack { FastingReportView() }
+                }
                 Tab("Erinnerungen", systemImage: "bell") {
                     NavigationStack {
                         NotificationSettingsView(
@@ -61,6 +65,8 @@ struct RootView: View {
             // Neu planen bei Planänderung, geänderten Einstellungen und App-Rückkehr.
             .task(id: rescheduleKey(plan)) {
                 FastingHistoryRecorder.recordCompletedFasts(context: context, plan: plan)
+                SharedPlanStore.save(plan.schedule)
+                WidgetCenter.shared.reloadAllTimelines()
                 await scheduler.reschedule(plan: plan, settings: settings)
             }
         } else {

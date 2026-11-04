@@ -156,6 +156,63 @@ public struct DayScheduleRule: Codable, Hashable, Identifiable, Sendable {
     public var eatingHours: Int { Int((Double(eatingDurationMinutes) / 60).rounded()) }
 }
 
+// MARK: - 2b. Wochenplan als Werttyp
+
+/// Alles, was der Engine Tagesregeln liefert: das SwiftData-Modell oder eine Wertkopie.
+public protocol FastingScheduleSource {
+    func rule(for weekday: Weekday) -> DayScheduleRule
+}
+
+extension FastingScheduleSource {
+    /// Echte Fastendauer in Minuten nach dem Essensfenster dieses Tages bis zum nächsten
+    /// aktiven Fenster (kann Tage überspringen). `nil`, wenn der Tag oder kein Tag aktiv ist.
+    /// Näherung ohne Sommerzeit-Korrektur; reicht für Anzeige-Badges.
+    public func fastingMinutesAfterWindow(of weekday: Weekday) -> Int? {
+        let rule = rule(for: weekday)
+        guard rule.isEnabled else { return nil }
+        let endAbs = rule.startMinutes + rule.eatingDurationMinutes
+        var day = weekday
+        for k in 1...7 {
+            day = day.nextDay
+            let next = self.rule(for: day)
+            if next.isEnabled {
+                return max(0, k * 1440 + next.startMinutes - endAbs)
+            }
+        }
+        return nil
+    }
+
+    /// Badge "Fasten:Essen" mit der tatsächlichen Pause danach, z. B. Mo–Fr "18:6", Sa "14:9".
+    public func protocolBadge(for weekday: Weekday) -> String {
+        let rule = rule(for: weekday)
+        guard let fasting = fastingMinutesAfterWindow(of: weekday) else { return "–" }
+        return "\(Int((Double(fasting) / 60).rounded())):\(rule.eatingHours)"
+    }
+}
+
+/// Wochenplan als Sendable-Werttyp (Widget, Tests, Hintergrund).
+public struct WeeklySchedule: FastingScheduleSource, Codable, Hashable, Sendable {
+    public private(set) var rules: [DayScheduleRule]
+
+    public init(rules: [DayScheduleRule]) {
+        self.rules = Self.normalized(rules)
+    }
+
+    public func rule(for weekday: Weekday) -> DayScheduleRule {
+        rules.first(where: { $0.weekday == weekday })
+            ?? DayScheduleRule(weekday: weekday, isEnabled: false, eatingStartMinutes: 8 * 60, eatingEndMinutes: 14 * 60)
+    }
+
+    /// Genau eine Regel pro Wochentag. Fehlende Tage werden deaktiviert ergänzt,
+    /// Duplikate verworfen (erste gewinnt).
+    public static func normalized(_ rules: [DayScheduleRule]) -> [DayScheduleRule] {
+        Weekday.orderedMondayFirst.map { day in
+            rules.first(where: { $0.weekday == day })
+                ?? DayScheduleRule(weekday: day, isEnabled: false, eatingStartMinutes: 8 * 60, eatingEndMinutes: 14 * 60)
+        }
+    }
+}
+
 // MARK: - 3. SwiftData-Modell
 
 @Model
@@ -184,10 +241,7 @@ public final class WeeklyFastingPlan {
     /// Stellt sicher: genau eine Regel pro Wochentag. Fehlende Tage werden deaktiviert ergänzt,
     /// Duplikate verworfen (erste gewinnt).
     private static func normalized(_ rules: [DayScheduleRule]) -> [DayScheduleRule] {
-        Weekday.orderedMondayFirst.map { day in
-            rules.first(where: { $0.weekday == day })
-                ?? DayScheduleRule(weekday: day, isEnabled: false, eatingStartMinutes: 8 * 60, eatingEndMinutes: 14 * 60)
-        }
+        WeeklySchedule.normalized(rules)
     }
 
     /// Praxisbeispiel:
@@ -239,31 +293,11 @@ public final class WeeklyFastingPlan {
         updatedAt = .now
     }
 
-    /// Echte Fastendauer in Minuten nach dem Essensfenster dieses Tages bis zum nächsten
-    /// aktiven Fenster (kann Tage überspringen). `nil`, wenn kein Tag aktiv ist.
-    /// Näherung ohne Sommerzeit-Korrektur; reicht für Anzeige-Badges.
-    public func fastingMinutesAfterWindow(of weekday: Weekday) -> Int? {
-        let rule = rule(for: weekday)
-        guard rule.isEnabled else { return nil }
-        let endAbs = rule.startMinutes + rule.eatingDurationMinutes
-        var day = weekday
-        for k in 1...7 {
-            day = day.nextDay
-            let next = self.rule(for: day)
-            if next.isEnabled {
-                return max(0, k * 1440 + next.startMinutes - endAbs)
-            }
-        }
-        return nil
-    }
-
-    /// Badge "Fasten:Essen" mit der tatsächlichen Pause danach, z. B. Mo–Fr "18:6", Sa "14:9".
-    public func protocolBadge(for weekday: Weekday) -> String {
-        let rule = rule(for: weekday)
-        guard let fasting = fastingMinutesAfterWindow(of: weekday) else { return "–" }
-        return "\(Int((Double(fasting) / 60).rounded())):\(rule.eatingHours)"
-    }
+    /// Wertkopie für Widget, Tests und Hintergrundberechnungen (ohne SwiftData).
+    public var schedule: WeeklySchedule { WeeklySchedule(rules: dayRules) }
 }
+
+extension WeeklyFastingPlan: FastingScheduleSource {}
 
 // MARK: - 4. Biologische Phasen & Snapshot
 
@@ -334,7 +368,7 @@ public final class FastingScheduleEngine {
 
     /// Liefert den exakten Fasten-/Essensstatus für `date`.
     /// `nil`, wenn der Plan keinen aktiven Tag enthält.
-    public func resolveSnapshot(for date: Date, plan: WeeklyFastingPlan) -> ResolvedFastingSnapshot? {
+    public func resolveSnapshot(for date: Date, plan: some FastingScheduleSource) -> ResolvedFastingSnapshot? {
         let intervals = eatingIntervals(around: date, plan: plan)
         guard !intervals.isEmpty else { return nil }
 
@@ -395,7 +429,7 @@ public final class FastingScheduleEngine {
 
     /// Essens-Abschnitte eines Kalendertags als Anteil 0…1 des Tages (für Wochenband/Ribbon).
     /// Übernachtfenster vom Vortag erscheinen mit `continuesFromPreviousDay = true`.
-    public func eatingSegments(on day: Date, plan: WeeklyFastingPlan) -> [DayEatingSegment] {
+    public func eatingSegments(on day: Date, plan: some FastingScheduleSource) -> [DayEatingSegment] {
         let dayStart = calendar.startOfDay(for: day)
         guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else { return [] }
         let span = dayEnd.timeIntervalSince(dayStart)
@@ -413,14 +447,14 @@ public final class FastingScheduleEngine {
 
     /// Alle Essensfenster, die nach `date` enden, für die nächsten `days` Tage
     /// (z. B. für Benachrichtigungen). Ein gerade offenes Fenster ist enthalten.
-    public func upcomingEatingWindows(after date: Date, plan: WeeklyFastingPlan, days: Int = 14) -> [DateInterval] {
+    public func upcomingEatingWindows(after date: Date, plan: some FastingScheduleSource, days: Int = 14) -> [DateInterval] {
         eatingIntervals(around: date, plan: plan, dayRange: -1...max(days, 1))
             .filter { $0.end > date }
             .map { DateInterval(start: $0.start, end: $0.end) }
     }
 
     /// Fastenphasen (Lücken zwischen Essensfenstern), die vollständig in [start, end] liegen.
-    public func fastingWindows(between start: Date, and end: Date, plan: WeeklyFastingPlan) -> [DateInterval] {
+    public func fastingWindows(between start: Date, and end: Date, plan: some FastingScheduleSource) -> [DateInterval] {
         guard end > start else { return [] }
         let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: start),
                                            to: calendar.startOfDay(for: end)).day ?? 0
@@ -436,7 +470,7 @@ public final class FastingScheduleEngine {
     /// Konkrete Essensfenster von 2 Tagen vor bis 8 Tage nach `date`, sortiert und überlappungsfrei.
     private func eatingIntervals(
         around date: Date,
-        plan: WeeklyFastingPlan,
+        plan: some FastingScheduleSource,
         dayRange: ClosedRange<Int> = -2...8
     ) -> [EatingInterval] {
         let startOfToday = calendar.startOfDay(for: date)
@@ -498,48 +532,7 @@ public final class FastingScheduleEngine {
 
     private static func hoursText(minutes: Int) -> String {
         let h = minutes / 60, m = minutes % 60
+        if h == 0 { return "\(m) min" }
         return m == 0 ? "\(h) h" : "\(h) h \(m) min"
     }
-}
-
-// MARK: - 6. Reporting
-
-public enum ReportingPeriod: String, CaseIterable, Sendable {
-    case week = "Woche"
-    case month = "Monat"
-    case year = "Jahr"
-}
-
-public struct FastingReportSummary: Sendable {
-    public let period: ReportingPeriod
-    public let totalFastedHours: Double
-    public let targetFastedHours: Double
-    public let deepKetosisHours: Double
-    public let currentStreakDays: Int
-    public let remainingStreakJokers: Int
-    public let latestScaleWeightKg: Double
-    public let smoothedTrendWeightKg: Double
-
-    public init(
-        period: ReportingPeriod,
-        totalFastedHours: Double,
-        targetFastedHours: Double,
-        deepKetosisHours: Double,
-        currentStreakDays: Int,
-        remainingStreakJokers: Int,
-        latestScaleWeightKg: Double,
-        smoothedTrendWeightKg: Double
-    ) {
-        self.period = period
-        self.totalFastedHours = totalFastedHours
-        self.targetFastedHours = targetFastedHours
-        self.deepKetosisHours = deepKetosisHours
-        self.currentStreakDays = currentStreakDays
-        self.remainingStreakJokers = remainingStreakJokers
-        self.latestScaleWeightKg = latestScaleWeightKg
-        self.smoothedTrendWeightKg = smoothedTrendWeightKg
-    }
-
-    /// 1 Fastenstunde = 1 Meter Höhe (Eiffelturm 330 m).
-    public var eiffelTowerEquivalentRatio: Double { totalFastedHours / 330.0 }
 }

@@ -22,6 +22,18 @@ public struct FastingPlanEditorView: View {
                 TextField("Planname", text: $plan.name)
             }
 
+            let issues = FastingPlanValidator.issues(for: plan)
+            if !issues.isEmpty {
+                Section("Hinweise") {
+                    ForEach(issues) { issue in
+                        Label(issue.message,
+                              systemImage: issue.severity == .warning ? "exclamationmark.triangle.fill" : "info.circle")
+                            .foregroundStyle(issue.severity == .warning ? Color.orange : Color.secondary)
+                            .font(.footnote)
+                    }
+                }
+            }
+
             Section {
                 ForEach(Weekday.orderedMondayFirst) { day in
                     DayRuleRow(
@@ -140,6 +152,7 @@ struct DayRuleRow: View {
 
     private static func durationText(_ minutes: Int) -> String {
         let h = minutes / 60, m = minutes % 60
+        if h == 0 { return "\(m) min" }
         return m == 0 ? "\(h) h" : "\(h) h \(m) min"
     }
 }

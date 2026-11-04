@@ -235,3 +235,107 @@ struct FastingHistoryTests {
         #expect(!s.isGoalReached)
     }
 }
+
+@Suite("Auswertung, Gewicht, Plan-Prüfung")
+struct ReportAndValidationTests {
+    let calendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Europe/Berlin")!
+        c.firstWeekday = 2 // Montag
+        return c
+    }()
+
+    func date(_ m: Int, _ d: Int, _ h: Int = 0) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: m, day: d, hour: h))!
+    }
+
+    // 02.11.2026 = Montag
+    func session(endingOn d: Int, hours: Int = 18, fastedHours: Int? = nil) -> FastingSessionSummary {
+        let end = date(11, d, 8)
+        let start = end.addingTimeInterval(TimeInterval(-hours * 3600))
+        return FastingSessionSummary(start: start, plannedEnd: end,
+                                     actualEnd: fastedHours.map { start.addingTimeInterval(TimeInterval($0 * 3600)) })
+    }
+
+    @Test func weekSummarySumsIstAndSoll() {
+        let sessions = [session(endingOn: 2), session(endingOn: 3, fastedHours: 12), session(endingOn: 9)]
+        let s = FastingReportBuilder.summary(period: .week, sessions: sessions, now: date(11, 4, 12),
+                                             calendar: calendar, jokers: 0)
+        #expect(s.completedSessions == 2)          // 09.11. liegt in der nächsten Woche
+        #expect(s.totalFastedHours == 30)
+        #expect(s.targetFastedHours == 36)
+        #expect(s.longFastHours == 2)              // 18 h − 16 h
+        #expect(s.goalReachedSessions == 1)
+        #expect(s.goalRate == 0.5)
+    }
+
+    @Test func weekHasSevenDailyBuckets() {
+        let buckets = FastingReportBuilder.buckets(period: .week, sessions: [session(endingOn: 3)],
+                                                   now: date(11, 4, 12), calendar: calendar)
+        #expect(buckets.count == 7)
+        #expect(buckets[1].fastedHours == 18)
+        #expect(buckets[0].fastedHours == 0)
+    }
+
+    @Test func yearHasTwelveMonthlyBuckets() {
+        let buckets = FastingReportBuilder.buckets(period: .year, sessions: [session(endingOn: 3)],
+                                                   now: date(11, 4, 12), calendar: calendar)
+        #expect(buckets.count == 12)
+        #expect(buckets[10].fastedHours == 18)
+    }
+
+    @Test func emaSmoothsAndAveragesPerDay() {
+        let samples = [
+            WeightSample(date: date(11, 1, 7), kg: 80),
+            WeightSample(date: date(11, 2, 7), kg: 79),
+            WeightSample(date: date(11, 2, 20), kg: 81),   // gleicher Tag → Mittel 80
+            WeightSample(date: date(11, 3, 7), kg: 70),
+        ]
+        let trend = WeightTrend.smoothed(samples, alpha: 0.1, calendar: calendar)
+        #expect(trend.count == 3)
+        #expect(trend[0].trendKg == 80)
+        #expect(trend[1].kg == 80)
+        #expect(abs(trend[2].trendKg - 79) < 0.0001)       // 80 + 0,1 × (70 − 80)
+    }
+
+    @Test func validatorFlagsTypicalMistakes() {
+        var rules = WeeklyFastingPlan.workweekExampleRules()
+        rules[0] = DayScheduleRule(weekday: .monday, startHour: 10, endHour: 10)      // 24 h
+        rules[1] = DayScheduleRule(weekday: .tuesday, startHour: 8, endHour: 23)      // 15 h Essen, 9 h Pause
+        let issues = FastingPlanValidator.issues(for: WeeklySchedule(rules: rules))
+        #expect(issues.first?.severity == .warning)
+        #expect(issues.contains { $0.weekday == .monday && $0.severity == .warning })
+        #expect(issues.contains { $0.weekday == .tuesday && $0.message.contains("länger als 12") })
+        #expect(issues.contains { $0.weekday == .tuesday && $0.message.contains("9 h") })
+    }
+
+    @Test func validatorAcceptsExamplePlan() {
+        let issues = FastingPlanValidator.issues(for: WeeklySchedule(rules: WeeklyFastingPlan.workweekExampleRules()))
+        // Einziger Hinweis: So 22:00 → Mo 08:00 = 10 h Pause
+        #expect(issues.count == 1)
+        #expect(issues.first?.weekday == .sunday)
+    }
+
+    @Test func validatorWarnsWhenNoDayEnabled() {
+        let rules = Weekday.orderedMondayFirst.map {
+            DayScheduleRule(weekday: $0, isEnabled: false, startHour: 8, endHour: 14)
+        }
+        let issues = FastingPlanValidator.issues(for: WeeklySchedule(rules: rules))
+        #expect(issues.count == 1 && issues[0].weekday == nil)
+    }
+
+    @Test func scheduleRoundTripsThroughJSON() throws {
+        let schedule = WeeklySchedule(rules: WeeklyFastingPlan.workweekExampleRules())
+        let data = try JSONEncoder().encode(schedule)
+        let decoded = try JSONDecoder().decode(WeeklySchedule.self, from: data)
+        #expect(decoded == schedule)
+        #expect(decoded.protocolBadge(for: .saturday) == "14:9")
+    }
+
+    @Test func engineWorksWithValueSchedule() throws {
+        let engine = FastingScheduleEngine(calendar: calendar)
+        let schedule = WeeklySchedule(rules: WeeklyFastingPlan.workweekExampleRules())
+        let snap = try #require(engine.resolveSnapshot(for: date(11, 7, 18), plan: schedule))
+        #expect(snap.mode == .eatingWindow)
+    }
+}
