@@ -48,6 +48,18 @@ public enum Weekday: Int, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    public var fullName: String {
+        switch self {
+        case .monday: return "Montag"
+        case .tuesday: return "Dienstag"
+        case .wednesday: return "Mittwoch"
+        case .thursday: return "Donnerstag"
+        case .friday: return "Freitag"
+        case .saturday: return "Samstag"
+        case .sunday: return "Sonntag"
+        }
+    }
+
     public var isWeekend: Bool { self == .saturday || self == .sunday }
 
     public var previousDay: Weekday { shifted(by: -1) }
@@ -183,7 +195,12 @@ public final class WeeklyFastingPlan {
     /// - Sa: 17:00 → So 02:00 (Übernacht)
     /// - So: 16:00–22:00
     public static func createWorkweek18_6Weekend14_10Plan() -> WeeklyFastingPlan {
-        let rules: [DayScheduleRule] = Weekday.orderedMondayFirst.map { day in
+        WeeklyFastingPlan(name: "Werktags 08–14 · Sa 17–02 Uhr · So 16–22", dayRules: workweekExampleRules())
+    }
+
+    /// Regeln des Praxisbeispiels ohne neues @Model-Objekt (z. B. für „Vorlage anwenden“ im Editor).
+    public static func workweekExampleRules() -> [DayScheduleRule] {
+        Weekday.orderedMondayFirst.map { day in
             switch day {
             case .saturday:
                 return DayScheduleRule(weekday: day, strategy: .lateNightOvernight,
@@ -196,7 +213,12 @@ public final class WeeklyFastingPlan {
                                        startHour: 8, endHour: 14)
             }
         }
-        return WeeklyFastingPlan(name: "Werktags 08–14 · Sa 17–02 Uhr · So 16–22", dayRules: rules)
+    }
+
+    /// Ersetzt alle Regeln auf einmal (Vorlagen) und aktualisiert `updatedAt`.
+    public func replaceRules(_ rules: [DayScheduleRule]) {
+        dayRules = Self.normalized(rules)
+        updatedAt = .now
     }
 
     /// Regel für einen Wochentag. Crasht nie; liefert im Notfall eine deaktivierte Regel.
