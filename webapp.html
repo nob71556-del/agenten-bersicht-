@@ -170,7 +170,8 @@ svg.chart .pt { fill: var(--glow-2); opacity: .7; }
 .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -2px; }
 .sess { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .sess li { padding: 12px; border-radius: 14px; background: rgba(5,18,28,.45); display: grid; gap: 6px; font-size: 14px; animation: viewIn .4s both; }
-.sess .ok { color: var(--ok); } .sess .miss { color: var(--coral); }
+.sess .ok { color: var(--ok); }
+.tile b, .tile small, .badge b, .badge small { overflow-wrap: anywhere; } .sess .miss { color: var(--coral); }
 .sess summary { cursor: pointer; color: var(--glow); font-size: 13px; font-weight: 600; }
 .sess details .row { margin-top: 8px; }
 
@@ -257,6 +258,87 @@ svg.chart .pt { fill: var(--glow-2); opacity: .7; }
 @keyframes bubbleRise { to { transform: translate(var(--dx), -220px) scale(.4); opacity: 0; } }
 
 .notice { font-size: 13px; padding: 10px 12px; border-radius: 14px; background: rgba(255,143,110,.12); border: 1px solid rgba(255,143,110,.35); }
+/* Körper-Szene */
+.bodycard .cellscene { width: 100%; height: auto; display: block; max-height: 220px; }
+.cellscene .membrane { fill: rgba(95,227,208,.07); stroke: rgba(95,227,208,.55); stroke-width: 2.5; transform-box: fill-box; transform-origin: center; animation: membrane 4s ease-in-out infinite; }
+@keyframes membrane { 50% { transform: scale(1.015, .985); } }
+.cellscene .nucleus { fill: rgba(127,182,255,.22); stroke: rgba(127,182,255,.5); stroke-width: 1.5; }
+.cellscene .nucleolus { fill: rgba(127,182,255,.45); }
+.nutri { fill: #ffd27a; animation: flowIn 3.2s ease-in-out infinite; }
+@keyframes flowIn { 0% { transform: translateX(0); opacity: 0; } 15%, 70% { opacity: 1; } 100% { transform: translateX(150px); opacity: 0; } }
+.hex { fill: rgba(246,236,200,.75); stroke: rgba(246,236,200,.95); stroke-width: 1; transform-box: fill-box; transform-origin: center; }
+.hex.fill { animation: hexIn 3s ease-out infinite; }
+@keyframes hexIn { 0% { transform: scale(0); opacity: 0; } 30%, 85% { transform: scale(1); opacity: 1; } 100% { opacity: 0; } }
+.hex.use { animation: hexUse 3.6s ease-in-out infinite; }
+@keyframes hexUse { 0%, 20% { transform: scale(1); opacity: 1; } 60% { transform: scale(.2); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.gluc { fill: #ffd27a; animation: outward 3.6s ease-out infinite; }
+@keyframes outward { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)); opacity: 0; } }
+.fatdrop { fill: rgba(255,210,122,.55); stroke: #ffd27a; stroke-width: 1.5; transform-box: fill-box; transform-origin: center; animation: fatShrink 4s ease-in-out infinite; }
+@keyframes fatShrink { 0%, 100% { transform: scale(1); } 50% { transform: scale(.7); } }
+.spark { fill: #fff3b0; animation: outward 2.6s ease-out infinite; }
+.ketone { animation: ketone 4s ease-in-out infinite; }
+.ketone circle { fill: rgba(95,227,208,.25); stroke: #5fe3d0; stroke-width: 1.2; }
+.ketone text { fill: #5fe3d0; font: 700 8px var(--f-mono); }
+@keyframes ketone { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(150px, -20px); opacity: 0; } }
+.junk { transform-box: fill-box; transform-origin: center; animation: junk 6s ease-in-out infinite; }
+.junk path { fill: #6f7d86; stroke: #a3b1b9; stroke-width: 1; }
+@keyframes junk { 0%, 42% { opacity: 1; transform: scale(1); } 58%, 92% { opacity: 0; transform: scale(.3); } 100% { opacity: 1; transform: scale(1); } }
+.phago { animation: phago 6s ease-in-out infinite; }
+.phago-o { fill: none; stroke: #7fb6ff; stroke-width: 2; stroke-dasharray: 5 3; }
+.phago-i { fill: rgba(127,182,255,.12); stroke: #7fb6ff; stroke-width: 1.2; }
+@keyframes phago { 0% { transform: translate(40px, 40px) scale(.5); opacity: 0; } 12% { opacity: 1; } 42% { transform: translate(110px, 88px) scale(1); } 58% { transform: translate(110px, 88px) scale(.8); opacity: 1; } 75%, 100% { transform: translate(110px, 88px) scale(.8); opacity: 0; } }
+.lyso { fill: rgba(255,143,110,.75); animation: lyso 6s ease-in-out infinite; }
+@keyframes lyso { 0%, 45% { transform: translate(0, 0); opacity: 0; } 50% { opacity: 1; } 62% { transform: translate(50px, -50px); opacity: 1; } 72%, 100% { transform: translate(50px, -50px); opacity: 0; } }
+.reborn { fill: #5fe3d0; animation: reborn 6s ease-out infinite; }
+@keyframes reborn { 0%, 66% { transform: translate(0, 0); opacity: 0; } 72% { opacity: 1; } 98%, 100% { transform: translate(var(--tx), var(--ty)); opacity: 0; } }
+.scenecap { text-align: center; font-size: 12px; color: var(--muted); font-family: var(--f-mono); margin-top: -6px; }
+.evdots { display: inline-flex; gap: 3px; vertical-align: middle; }
+.evdots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(147,180,185,.3); }
+.evdots i.on { background: var(--glow); box-shadow: 0 0 6px var(--glow); }
+.bodyline { position: relative; height: 10px; border-radius: 99px; background: rgba(127,182,255,.14); margin: 6px 8px; }
+.bodyfill { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: linear-gradient(90deg, #ffd27a, #5fe3d0, #7fb6ff); box-shadow: 0 0 12px rgba(95,227,208,.5); animation: grow 1.2s cubic-bezier(.2,.8,.2,1) both; transform-origin: left; }
+.bodyline i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: rgba(234,244,243,.35); }
+.bodynow { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--moon); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(246,236,200,.3), 0 0 12px var(--moon); } 50% { box-shadow: 0 0 0 10px rgba(246,236,200,0), 0 0 20px var(--moon); } }
+.stagechips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+.stagechip { flex: none; display: grid; text-align: left; padding: 7px 12px; border-radius: 14px; font-size: 13px; background: rgba(5,18,28,.5); }
+.stagechip small { font-family: var(--f-mono); font-size: 10px; color: var(--muted); font-weight: 500; }
+.stagechip.done { color: var(--ok); }
+.stagechip.cur { border-color: var(--moon); box-shadow: 0 0 0 2px rgba(246,236,200,.25); }
+.stagechip[aria-selected="true"] { background: rgba(95,227,208,.2); border-color: var(--glow); }
+.stagebody { display: grid; gap: 8px; animation: viewIn .4s both; }
+/* Belohnungen */
+.pearl { display: inline-block; width: 18px; height: 18px; border-radius: 50%; flex: none; background: radial-gradient(circle at 35% 30%, #fff, #f6ecc8 35%, #c9b98a 75%, #8f8361); animation: shimmer 3s ease-in-out infinite; }
+@keyframes shimmer { 0%, 100% { box-shadow: 0 0 8px rgba(246,236,200,.5); transform: scale(1); } 50% { box-shadow: 0 0 18px rgba(246,236,200,.95); transform: scale(1.1); } }
+.pearlbig { display: flex; align-items: center; gap: 8px; }
+.pearlbig b { font-family: var(--f-display); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.tile .pearl { width: 14px; height: 14px; margin-right: 4px; vertical-align: -1px; }
+.xpbar { height: 12px; border-radius: 99px; background: rgba(147,180,185,.18); overflow: hidden; }
+.xpbar i { display: block; height: 100%; width: var(--w); border-radius: 99px; background: linear-gradient(90deg, #f6ecc8, #5fe3d0); box-shadow: 0 0 12px rgba(95,227,208,.6); animation: xp 1.4s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes xp { from { width: 0; } }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.badge { display: grid; justify-items: center; text-align: center; gap: 3px; padding: 10px 6px; border-radius: 16px; background: rgba(5,18,28,.45); border: 1px solid var(--edge); animation: pop .5s both; }
+.badge:not(.on) > * { opacity: .5; }
+.badge b { font-size: 12px; line-height: 1.2; }
+.badge small { font-size: 10px; color: var(--muted); line-height: 1.25; }
+.bicon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: rgba(147,180,185,.15); color: var(--muted); }
+.bicon svg { width: 24px; height: 24px; }
+.badge.on { border-color: rgba(246,236,200,.45); }
+.badge.on .bicon { background: radial-gradient(circle at 35% 30%, #fff8dc, #f6ecc8 40%, #5fe3d0); color: #0a2a33; box-shadow: 0 0 16px rgba(246,236,200,.55); }
+.unlock { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px; background: rgba(2,8,16,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fadeIn .3s both; }
+.unlock.out { animation: fadeOut .3s both; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+.unlockcard { position: relative; overflow: hidden; width: min(340px, 100%); text-align: center; display: grid; justify-items: center; gap: 10px; padding: 28px 22px; border-radius: 26px; background: var(--glass-strong); border: 1px solid rgba(246,236,200,.5); animation: pop .6s cubic-bezier(.3,.7,.4,1.5) both; }
+.unlockcard > :not(.rays) { position: relative; }
+.rays { position: absolute; left: 50%; top: 70px; width: 440px; height: 440px; margin: -220px 0 0 -220px; border-radius: 50%; background: repeating-conic-gradient(rgba(246,236,200,.14) 0 10deg, transparent 10deg 20deg); animation: spin 14s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.bicon.big { width: 86px; height: 86px; background: radial-gradient(circle at 35% 30%, #fff8dc, #f6ecc8 40%, #5fe3d0); color: #0a2a33; box-shadow: 0 0 30px rgba(246,236,200,.7); animation: pop .7s .15s cubic-bezier(.3,.7,.4,1.6) both; }
+.bicon.big svg { width: 44px; height: 44px; }
+.pearlburst { position: fixed; z-index: 65; left: 50%; top: 38%; font-family: var(--f-display); font-weight: 800; font-size: 1.9rem; color: var(--moon); text-shadow: 0 0 18px rgba(246,236,200,.8); pointer-events: none; animation: burst 1.8s ease-out forwards; }
+@keyframes burst { 0% { opacity: 0; transform: translate(-50%, 20px) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, -80px) scale(1); } }
+.ok { color: var(--ok); }
+.anticip { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; }
 @media (max-width: 380px) { .tiles { grid-template-columns: 1fr 1fr; } .otterbtn { width: 78px; height: 78px; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -535,7 +617,9 @@ function floLines(view) {
     else {
       const r = report(analysePeriod, state.sessions, real, state.jokers);
       if (r.n) L.push(`Ich hab nachgerechnet: ${Math.round(r.ok / r.n * 100)} % deiner Fastenphasen in diesem Zeitraum geschafft.`);
-      L.push(`${Math.round(r.fasted)} Stunden gefastet – das sind ${Math.round(r.fasted)} Höhenmeter. Der Eiffelturm hat 330.`);
+      const rw = rewards();
+      L.push(rw.next ? `Du hast ${rw.pearls} Perlen gesammelt. Noch ${rw.toNext} bis zum Rang „${rw.next.name}“ – das schaffst du!` : `Gezeitenmeister! ${rw.pearls} Perlen. Ich bin sprachlos – und das passiert einem Otter selten.`);
+      const nextBadge = rw.badges.find(b => !b.on); if (nextBadge) L.push(`Nächstes Abzeichen in Sicht: „${nextBadge.name}“ – ${nextBadge.desc}.`);
       L.push(`Du hast noch ${r.streak.left} ${r.streak.left === 1 ? 'Joker' : 'Joker'}. Ein verpatzter Tag reißt deine Serie also nicht gleich ab.`);
     }
   } else if (view === 'gewicht') {
@@ -802,12 +886,197 @@ async function recordCompleted() {
       const newest = wins[wins.length - 1];
       if (real - newest.end < 3 * 3600000 && !celebrated.has(newest.start.getTime())) {
         celebrated.add(newest.start.getTime());
-        setTimeout(() => { celebrate(); floSay(`Geschafft, ${state.profile.name}! Deine Fastenphase ist vorbei – ich trag sie gleich stolz ein.`, { happy: true }); }, 900);
+        const done = { start: newest.start.getTime(), plannedEnd: newest.end.getTime(), actualEnd: null };
+        setTimeout(() => { celebrate(); pearlBurst(pearlsFor(done)); floSay(`Geschafft, ${state.profile.name}! Deine Fastenphase ist vorbei. Dafür gibt's ${pearlsFor(done)} Perlen!`, { happy: true }); setTimeout(checkUnlocks, 2000); }, 900);
       }
       if (store.mode === 'local') refresh();
     }
   } catch (e) { toast('Verlauf konnte nicht aktualisiert werden'); }
   recording = false;
+}
+
+// ================= Körper: was beim Fasten passiert =================
+// Fachlich geprüft: Zeitangaben sind Richtwerte und individuell verschieden.
+// Autophagie (Zellrecycling) ist beim Menschen wenig erforscht; Hinweise gibt es vor allem
+// bei längerem Fasten (ca. 24 h+), deutliche Effekte vor allem aus Tierstudien.
+const BODY = [
+  { from: 0, to: 4, key: 'digest', title: 'Verdauung', short: '0–4 h',
+    what: 'Dein Körper verarbeitet die letzte Mahlzeit. Blutzucker und Insulin steigen an und sinken dann wieder.',
+    ev: 'gut belegt', evLevel: 3 },
+  { from: 4, to: 12, key: 'glycogen', title: 'Speicher anzapfen', short: '4–12 h',
+    what: 'Insulin ist gesunken. Die Leber gibt gespeicherten Zucker (Glykogen) frei, und der Fettabbau zieht langsam an.',
+    ev: 'gut belegt', evLevel: 3 },
+  { from: 12, to: 16, key: 'fat', title: 'Fettstoffwechsel', short: '12–16 h',
+    what: 'Dein Körper nutzt mehr Fett als Energiequelle. Die Leber beginnt, Ketonkörper zu bilden – wie stark, ist von Mensch zu Mensch sehr verschieden.',
+    ev: 'belegt · Zeitpunkt variiert', evLevel: 2 },
+  { from: 16, to: 24, key: 'deep', title: 'Tiefe Ebbe', short: '16–24 h',
+    what: 'Fettverbrennung und Ketonkörper nehmen weiter zu. Zellrecycling (Autophagie) könnte langsam anlaufen – in Tierstudien deutlich, beim Menschen noch wenig erforscht.',
+    ev: 'Ketone belegt · Zellrecycling unsicher', evLevel: 2 },
+  { from: 24, to: Infinity, key: 'recycle', title: 'Zellrecycling', short: '24 h+',
+    what: 'Bei längerem Fasten gibt es Hinweise auf mehr Autophagie: Zellen bauen beschädigte Bestandteile ab und verwerten sie neu. Wann genau das beim Menschen passiert, ist noch offen.',
+    ev: 'erste Hinweise aus Studien', evLevel: 1 },
+];
+const bodyStageIndex = h => Math.max(0, BODY.findIndex(s => h >= s.from && h < s.to));
+const EV_DOTS = n => `<span class="evdots" aria-label="Beleglage ${n} von 3">${[1, 2, 3].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
+
+/** Animierte Zell-Szene je Phase. Alle Animationen sind reine CSS-Keyframes. */
+function cellScene(key) {
+  const cell = `<ellipse class="membrane" cx="160" cy="92" rx="128" ry="72"/><circle class="nucleus" cx="215" cy="98" r="22"/><circle class="nucleolus" cx="220" cy="94" r="7"/>`;
+  let inner = '';
+  if (key === 'digest' || key === 'refuel') {
+    inner = Array.from({ length: 7 }, (_, i) => `<circle class="nutri" cx="${-8 - i * 4}" cy="${62 + (i * 13) % 60}" r="${4 + (i % 3)}" style="animation-delay:${i * 0.45}s"/>`).join('')
+      + Array.from({ length: 6 }, (_, i) => `<polygon class="hex fill" points="${hexPts(105 + (i % 3) * 15, 80 + Math.floor(i / 3) * 14 + (i % 2) * 6, 7)}" style="animation-delay:${1 + i * 0.5}s"/>`).join('');
+  } else if (key === 'glycogen') {
+    inner = Array.from({ length: 9 }, (_, i) => `<polygon class="hex use" points="${hexPts(95 + (i % 3) * 15, 70 + Math.floor(i / 3) * 14 + (i % 2) * 6, 7)}" style="animation-delay:${i * 0.4}s"/>`).join('')
+      + Array.from({ length: 6 }, (_, i) => `<circle class="gluc" cx="${110}" cy="${85}" r="3" style="animation-delay:${i * 0.6}s;--tx:${60 + i * 12}px;--ty:${(i % 2 ? -1 : 1) * (10 + i * 5)}px"/>`).join('');
+  } else if (key === 'fat') {
+    inner = [[100, 72, 16], [128, 108, 11], [88, 112, 9]].map(([x, y, r], i) => `<circle class="fatdrop" cx="${x}" cy="${y}" r="${r}" style="animation-delay:${i * 0.7}s"/>`).join('')
+      + Array.from({ length: 7 }, (_, i) => `<circle class="spark" cx="105" cy="90" r="2.4" style="animation-delay:${i * 0.45}s;--tx:${40 + i * 14}px;--ty:${-30 + i * 9}px"/>`).join('')
+      + Array.from({ length: 3 }, (_, i) => `<g class="ketone" style="animation-delay:${i * 1.3}s"><circle cx="120" cy="${80 + i * 12}" r="7"/><text x="120" y="${83.5 + i * 12}" text-anchor="middle">K</text></g>`).join('');
+  } else {
+    inner = `<g class="junk"><path d="M100 78l9-5 5 8-8 6z"/><path d="M118 95l7 2-2 9-8-3z"/><path d="M96 102l6-6 6 6-5 5z"/><path d="M112 70l6 1 1 6-6 1z"/></g>
+      <g class="phago"><circle cx="0" cy="0" r="27" class="phago-o"/><circle cx="0" cy="0" r="21" class="phago-i"/></g>
+      <circle class="lyso" cx="60" cy="140" r="8"/>
+      ${Array.from({ length: 8 }, (_, i) => `<circle class="reborn" cx="110" cy="90" r="2.6" style="animation-delay:${i * 0.08}s;--tx:${Math.cos(i / 8 * 6.283) * 50}px;--ty:${Math.sin(i / 8 * 6.283) * 34}px"/>`).join('')}`;
+  }
+  const label = { digest: 'Nährstoffe strömen in die Zelle', refuel: 'Speicher werden aufgefüllt', glycogen: 'Glykogen wird zu Zucker abgebaut', fat: 'Fett wird zu Energie und Ketonkörpern', deep: 'Beschädigte Teile werden eingesammelt', recycle: 'Beschädigte Teile werden verwertet' }[key];
+  return `<svg class="cellscene s-${key}" viewBox="0 0 320 184" role="img" aria-label="Animation: ${label}">${cell}${inner}</svg><p class="scenecap">${label}</p>`;
+}
+function hexPts(cx, cy, r) { return Array.from({ length: 6 }, (_, i) => { const a = i / 6 * 6.283 + 0.5236; return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`; }).join(' '); }
+
+let bodyPick = null; // vom Nutzer angetippte Phase (null = aktuelle)
+function bodyCard(snap) {
+  if (snap.mode === 'eating') {
+    const last = state.sessions[state.sessions.length - 1];
+    return `<div class="card bodycard">
+      <div class="row between"><h2>Was gerade im Körper passiert</h2>${EV_DOTS(3)}</div>
+      ${cellScene('refuel')}
+      <p><b>Flut: Dein Körper tankt auf.</b> Nach dem Essen steigen Blutzucker und Insulin, und die Speicher (Glykogen) werden wieder gefüllt.</p>
+      ${last ? `<p class="small muted">Letzte Ebbe: ${hoursText(sFasted(last))} · ${sGoal(last) ? `<span class="ok">geschafft, +${pearlsFor(last)} Perlen</span>` : 'früher beendet'}</p>` : ''}
+    </div>`;
+  }
+  const h = (now - snap.start) / 3600000, cur = bodyStageIndex(h);
+  const sel = bodyPick ?? cur, st = BODY[sel];
+  const maxH = 24, pct = Math.min(1, h / maxH) * 100;
+  return `<div class="card bodycard">
+    <div class="row between"><h2>Was gerade im Körper passiert</h2><span class="pill glow">seit ${hoursText(Math.floor(h * 60))}</span></div>
+    <div class="bodyline" aria-hidden="true"><div class="bodyfill" style="width:${pct}%"></div>${[4, 12, 16].map(x => `<i style="left:${x / maxH * 100}%"></i>`).join('')}<span class="bodynow" style="left:${pct}%"></span></div>
+    <div class="stagechips" role="tablist" aria-label="Phasen">${BODY.map((s, i) => `<button type="button" role="tab" class="stagechip${i < cur ? ' done' : ''}${i === cur ? ' cur' : ''}" data-stage="${i}" aria-selected="${i === sel}">${i < cur ? '✓ ' : ''}${s.title}<small>${s.short}</small></button>`).join('')}</div>
+    <div class="stagebody" key="${st.key}">
+      ${cellScene(st.key)}
+      <div class="row between"><h3>${st.title}${sel === cur ? ' <span class="pill moon">jetzt</span>' : sel > cur ? ` <span class="pill">in ${hoursText(Math.max(0, Math.round((st.from - h) * 60)))}</span>` : ' <span class="pill glow">erreicht</span>'}</h3></div>
+      <p>${st.what}</p>
+      <p class="small muted">Beleglage: ${EV_DOTS(st.evLevel)} ${st.ev}. Richtwerte, individuell verschieden. Keine medizinische Beratung.</p>
+    </div>
+  </div>`;
+}
+
+// ================= Belohnungen: Perlen, Ränge, Abzeichen =================
+const RANKS = [
+  { at: 0, name: 'Strandläufer' }, { at: 40, name: 'Muschelsammler' }, { at: 120, name: 'Wellenreiter' },
+  { at: 280, name: 'Riffkundiger' }, { at: 520, name: 'Tiefseetaucher' }, { at: 900, name: 'Mondgezeiten-Kenner' },
+  { at: 1500, name: 'Gezeitenmeister' },
+];
+const pearlsFor = s => Math.floor(sFasted(s) / 60) + (sGoal(s) ? 5 : 0);
+function bestRun(sessions) {
+  const byDay = new Map();
+  for (const s of sessions) { const k = startOfDay(new Date(s.plannedEnd)).getTime(); (byDay.get(k) || byDay.set(k, []).get(k)).push(s); }
+  let run = 0, best = 0;
+  for (const k of [...byDay.keys()].sort((a, b) => a - b)) { if (byDay.get(k).every(sGoal)) { run++; best = Math.max(best, run); } else run = 0; }
+  return best;
+}
+const BADGES = [
+  { id: 'first', name: 'Erste Ebbe', desc: 'Erste Fastenphase geschafft', icon: 'moon', test: c => c.goals >= 1 },
+  { id: 's3', name: 'Dreier-Welle', desc: '3 Tage in Folge geschafft', icon: 'wave', test: c => c.best >= 3 },
+  { id: 's7', name: 'Wochen-Gezeit', desc: '7 Tage in Folge geschafft', icon: 'wave', test: c => c.best >= 7 },
+  { id: 's14', name: 'Springflut', desc: '14 Tage in Folge geschafft', icon: 'wave', test: c => c.best >= 14 },
+  { id: 's30', name: 'Mondzyklus', desc: '30 Tage in Folge geschafft', icon: 'moon', test: c => c.best >= 30 },
+  { id: 'h50', name: '50 Stunden', desc: '50 Stunden gefastet', icon: 'pearl', test: c => c.hours >= 50 },
+  { id: 'h150', name: '150 Stunden', desc: '150 Stunden gefastet', icon: 'pearl', test: c => c.hours >= 150 },
+  { id: 'h500', name: '500 Stunden', desc: '500 Stunden gefastet', icon: 'pearl', test: c => c.hours >= 500 },
+  { id: 'night', name: 'Nachtschwimmer', desc: 'Nach einem Fenster über Mitternacht weitergefastet', icon: 'star', test: c => c.night },
+  { id: 'deep', name: 'Tiefseetaucher', desc: 'Eine Fastenphase von 20 h oder länger', icon: 'shell', test: c => c.longest >= 20 },
+  { id: 'comeback', name: 'Comeback', desc: 'Nach einer verpassten Phase wieder geschafft', icon: 'star', test: c => c.comeback },
+  { id: 'scale', name: 'Waagemutig', desc: '5 Gewichtseinträge', icon: 'shell', test: c => c.weights >= 5 },
+];
+const BADGE_ICON = {
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  wave: '<path d="M2 15c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1M2 9c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1"/>',
+  pearl: '<circle cx="12" cy="12" r="7"/><circle cx="9.5" cy="9.5" r="2"/>',
+  star: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  shell: '<path d="M12 20c-5 0-8-4-8-8a8 8 0 0 1 16 0c0 4-3 8-8 8zM12 20V6M8 19l2-12M16 19l-2-12"/>',
+};
+function rewards() {
+  const ss = state.sessions;
+  let pearls = 0, prevMiss = false, comeback = false, night = false, longest = 0, hours = 0, goals = 0;
+  for (const s of ss) {
+    pearls += pearlsFor(s); hours += sFasted(s) / 60; longest = Math.max(longest, sFasted(s) / 60);
+    if (sGoal(s)) { goals++; if (prevMiss) comeback = true; prevMiss = false; const h0 = new Date(s.start).getHours(); if (h0 >= 0 && h0 < 6) night = true; }
+    else prevMiss = true;
+  }
+  const c = { goals, best: bestRun(ss), hours, night, longest, comeback, weights: state.weights.length };
+  let r = 0; while (r + 1 < RANKS.length && pearls >= RANKS[r + 1].at) r++;
+  const next = RANKS[r + 1];
+  return {
+    pearls, rank: r, rankName: RANKS[r].name, next,
+    toNext: next ? next.at - pearls : 0,
+    progress: next ? (pearls - RANKS[r].at) / (next.at - RANKS[r].at) : 1,
+    badges: BADGES.map(b => ({ ...b, on: !!b.test(c) })),
+  };
+}
+function badgeSvg(icon) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${BADGE_ICON[icon]}</svg>`; }
+function rewardsCard(rw) {
+  return `<div class="card rewardcard">
+    <div class="row between"><div><p class="eyebrow">Dein Rang</p><h2>${rw.rankName}</h2></div><div class="pearlbig"><span class="pearl"></span><b data-count="${rw.pearls}">0</b></div></div>
+    <div class="xpbar"><i style="--w:${Math.round(rw.progress * 100)}%"></i></div>
+    <p class="small muted">${rw.next ? `Noch ${rw.toNext} Perlen bis <b>${rw.next.name}</b>.` : 'Höchster Rang erreicht. Respekt!'} Du bekommst 1 Perle pro gefasteter Stunde und 5 extra für jede geschaffte Phase.</p>
+    <h3>Abzeichen <span class="muted small">${rw.badges.filter(b => b.on).length} von ${rw.badges.length}</span></h3>
+    <div class="badges">${rw.badges.map((b, i) => `<div class="badge${b.on ? ' on' : ''}" style="animation-delay:${i * 40}ms" title="${b.desc}"><span class="bicon">${badgeSvg(b.icon)}</span><b>${b.name}</b><small>${b.on ? 'freigeschaltet' : b.desc}</small></div>`).join('')}</div>
+  </div>`;
+}
+
+// Neu freigeschaltete Abzeichen und Rangaufstiege einmalig feiern
+const SEEN_KEY = 'fastflow-seen-rewards';
+let seenRewards = null;
+function loadSeen() { if (seenRewards) return seenRewards; try { seenRewards = JSON.parse(localStorage.getItem(SEEN_KEY)) || null; } catch (e) { seenRewards = null; } return seenRewards; }
+function saveSeen() { try { localStorage.setItem(SEEN_KEY, JSON.stringify(seenRewards)); } catch (e) {} }
+function checkUnlocks() {
+  if (!state.profile) return;
+  const rw = rewards(), on = rw.badges.filter(b => b.on).map(b => b.id);
+  const seen = loadSeen();
+  if (!seen) { seenRewards = { badges: on, rank: rw.rank }; saveSeen(); return; }
+  const fresh = rw.badges.filter(b => b.on && !seen.badges.includes(b.id));
+  const rankUp = rw.rank > seen.rank;
+  seenRewards = { badges: on, rank: rw.rank }; saveSeen();
+  if (fresh.length) showUnlock(`Neues Abzeichen${fresh.length > 1 ? ` (+${fresh.length - 1} weitere)` : ''}`, fresh[0].name, fresh[0].desc, fresh[0].icon);
+  else if (rankUp) showUnlock('Neuer Rang', rw.rankName, `Du hast ${rw.pearls} Perlen gesammelt.`, 'pearl');
+}
+function showUnlock(kicker, title, desc, icon) {
+  const o = document.createElement('div'); o.className = 'unlock'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', kicker);
+  o.innerHTML = `<div class="unlockcard"><div class="rays"></div><span class="bicon big">${badgeSvg(icon)}</span><p class="eyebrow">${kicker}</p><h2>${esc(title)}</h2><p class="muted">${esc(desc)}</p><button type="button" class="primary">Weiter</button></div>`;
+  document.body.appendChild(o); celebrate();
+  floSay(`Wow, ${state.profile.name}! „${title}“ – das schreib ich mir mit Sternchen auf!`, { happy: true });
+  const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 300); };
+  o.querySelector('button').addEventListener('click', close); o.addEventListener('click', e => { if (e.target === o) close(); });
+  o.querySelector('button').focus();
+}
+function pearlBurst(n) {
+  if (!n) return;
+  const p = document.createElement('div'); p.className = 'pearlburst'; p.textContent = `+${n} Perlen`;
+  document.body.appendChild(p); setTimeout(() => p.remove(), 1900);
+}
+// Live: Phasenwechsel während des Fastens feiern
+let lastStageKey = null;
+function watchStage() {
+  const snap = resolve(new Date(), state.plan);
+  const key = snap && snap.mode === 'fasting' ? BODY[bodyStageIndex((Date.now() - snap.start) / 3600000)].key : 'eat';
+  if (lastStageKey && key !== lastStageKey && key !== 'eat' && !simulated) {
+    const st = BODY.find(s => s.key === key);
+    toast(`Neue Phase: ${st.title}`); celebrate(); bodyPick = null;
+    floSay(`Meilenstein! Du bist jetzt in der Phase „${st.title}“. ${st.what.split('. ')[0]}.`, { happy: true });
+    if (currentView() === 'heute') renderView(false);
+  }
+  lastStageKey = key;
 }
 
 // ================= Ansichten =================
@@ -846,7 +1115,7 @@ function viewHeute() {
         <span class="until">${fasting ? 'bis zur Flut' : 'bis zur Ebbe'} · ${dayWord(snap.end)} ${hhmm(snap.end)} Uhr</span>
       </div>
     </div>
-    <p style="text-align:center"><b>${fasting ? snap.stage : 'Dein Essensfenster ist offen'}</b><br><span class="muted small">${fasting ? 'Richtwerte zur Orientierung, individuell verschieden. Keine medizinische Beratung.' : esc(snap.sub)}</span></p>
+    ${fasting ? `<p class="anticip"><span class="pearl"></span>Hältst du bis ${hhmm(snap.end)} Uhr durch: +${Math.floor((snap.end - snap.start) / 3600000) + 5} Perlen</p>` : `<p style="text-align:center"><b>Dein Essensfenster ist offen</b><br><span class="muted small">${esc(snap.sub)}</span></p>`}
     ${fasting ? (early
       ? `<p class="small" style="text-align:center">Heute vorzeitig beendet um ${hhmm(new Date(early.actualEnd))} Uhr. Ist notiert.</p>`
       : `<div class="row" style="justify-content:center"><button type="button" id="endEarly">Ich habe schon gegessen</button></div>
@@ -854,9 +1123,10 @@ function viewHeute() {
   </div>
   <div class="tiles">
     <div class="tile"><span>Serie</span><b data-count="${st.days}" data-suffix="${st.days === 1 ? ' Tag' : ' Tage'}">0</b></div>
-    <div class="tile"><span>Woche</span><b data-count="${Math.round(wk.fasted)}" data-suffix=" h">0 h</b></div>
+    <div class="tile"><span>Perlen</span><b><span class="pearl"></span><span data-count="${rewards().pearls}">0</span></b></div>
     <div class="tile"><span>${nextLabel}</span><b class="mono" style="font-size:1.05rem">${DAYS[dayIdx(nextAt)]} ${hhmm(nextAt)}</b></div>
   </div>
+  ${bodyCard(snap)}
   <div class="card">
     <div class="row between"><h2>Deine Gezeiten-Woche</h2><span class="pill moon">jetzt</span></div>
     <div class="week">${weekRows()}</div>
@@ -940,11 +1210,12 @@ function viewAnalyse() {
       <div class="tile"><span>Gefastet</span><b data-count="${Math.round(r.fasted)}" data-suffix=" h">0 h</b><small>Soll ${Math.round(r.target)} h</small></div>
       <div class="tile"><span>Geschafft</span><b data-count="${rate}" data-suffix=" %">0 %</b><small>${r.ok} von ${r.n} Phasen</small></div>
       <div class="tile"><span>Serie</span><b data-count="${r.streak.days}" data-suffix=" Tage">0 Tage</b><small>${r.streak.left} von ${state.jokers} Jokern übrig</small></div>
-      <div class="tile"><span>Höhenmeter</span><b data-count="${Math.round(r.fasted)}" data-suffix=" m">0 m</b><small>${Math.round(r.fasted / 330 * 100)} % Eiffelturm</small></div>
+      <div class="tile"><span>Perlen gesamt</span><b><span class="pearl"></span><span data-count="${rewards().pearls}">0</span></b><small>Rang: ${rewards().rankName}</small></div>
     </div>
     <div class="card"><h2>Fastenstunden</h2>${barChart(buckets(analysePeriod, state.sessions, real), analysePeriod === 'year')}
       <p class="muted small">Über 16 h hinaus gefastet: ${hoursText(Math.round(r.long * 60))}. Ein verfehlter Tag verbraucht einen Joker, die Serie läuft dann weiter.</p></div>`;
   }
+  body += rewardsCard(rewards());
   const recent = state.sessions.slice(-8).reverse();
   return `<div class="top"><div><p class="eyebrow">Deine Fasten-Analysen</p><h1>Analyse</h1></div></div>
   <div class="stack">${seg}${body}
@@ -1094,6 +1365,7 @@ function renderView(animate = true) {
   document.querySelectorAll('.tabbar a').forEach(a => { if (a.dataset.tab === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   countUp(host);
   if (v === 'heute') requestAnimationFrame(() => requestAnimationFrame(updateRing));
+  checkUnlocks();
   updateSea();
 }
 function refresh() {
@@ -1111,7 +1383,7 @@ function showOnboarding() {
 }
 function showApp() {
   $('onboard').hidden = true; $('app').hidden = false; $('tabbar').hidden = false; $('buddy').hidden = false;
-  mountOtters(); renderView(); recordCompleted();
+  mountOtters(); renderView(); recordCompleted(); watchStage();
   setTimeout(() => floNext(currentView(), true), 700);
 }
 function boot() {
@@ -1151,6 +1423,7 @@ $('app').addEventListener('submit', async e => {
 $('app').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.preset) { state.plan = PRESETS[b.dataset.preset].rules(); savePlanSoon(); renderView(false); floSay(`Neuer Rhythmus: ${PRESETS[b.dataset.preset].title}. Ich hab mitgeschrieben!`); }
+  else if (b.dataset.stage) { bodyPick = +b.dataset.stage; renderView(false); const st = BODY[bodyPick]; floSay(`${st.title}: ${st.what.split('. ')[0]}.`); }
   else if (b.dataset.period) { analysePeriod = b.dataset.period; renderView(false); floNext('analyse', true); }
   else if (b.dataset.step) { now = new Date(now.getTime() + (+b.dataset.step) * 60000); simulated = true; renderView(false); toast('Testzeit: ' + DAYS[dayIdx(now)] + ' ' + hhmm(now)); }
   else if (b.id === 'simNow') { simulated = false; renderView(false); toast('Echte Zeit'); }
@@ -1200,7 +1473,7 @@ $('app').addEventListener('click', async e => {
 });
 
 setInterval(() => { if (!state.profile || $('app').hidden) return; if (!simulated) now = new Date(); if (currentView() === 'heute') updateRing(); }, 1000);
-setInterval(() => { if (state.profile && !simulated) { now = new Date(); now.setSeconds(0, 0); updateSea(); recordCompleted(); if (currentView() === 'heute') renderView(false); } }, 60000);
+setInterval(() => { if (state.profile && !simulated) { now = new Date(); now.setSeconds(0, 0); updateSea(); recordCompleted(); watchStage(); if (currentView() === 'heute') renderView(false); } }, 60000);
 
 mountOtters();
 initSea();
