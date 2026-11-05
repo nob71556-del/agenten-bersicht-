@@ -1,0 +1,1481 @@
+<title>FastFlow Gezeiten</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Thema „Gezeiten bei Nacht“: Fasten = Ebbe, Essen = Flut. Bewusst nur dunkel (Nachtmeer).
+   Layout: animiertes Meer als Vollbild-Canvas, darüber eine Handy-breite App-Spalte,
+   unten feste Tab-Leiste, links darüber das Maskottchen Flo mit Sprechblase. */
+:root {
+  --night: #050d1a;
+  --deep: #0a2233;
+  --glass: rgba(14, 44, 62, 0.62);
+  --glass-strong: rgba(10, 34, 50, 0.86);
+  --edge: rgba(143, 220, 214, 0.18);
+  --ink: #eaf4f3;
+  --muted: #93b4b9;
+  --moon: #f6ecc8;
+  --glow: #5fe3d0;
+  --glow-2: #7fb6ff;
+  --coral: #ff8f6e;
+  --ok: #8be3a5;
+  --f-display: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  --f-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --tabbar: 68px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--night); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+}
+#sea { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+.app {
+  position: relative; z-index: 1; max-width: 520px; margin: 0 auto; min-height: 100%;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px calc(var(--tabbar) + 150px + env(safe-area-inset-bottom, 0px));
+}
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: 1.55rem; font-weight: 800; }
+h2 { font-size: 1.15rem; font-weight: 700; }
+h3 { font-size: 0.98rem; font-weight: 700; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--glow); }
+
+.card {
+  background: var(--glass); border: 1px solid var(--edge); border-radius: 22px; padding: 18px;
+  backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255,255,255,.06);
+  display: grid; gap: 12px; min-width: 0;
+}
+.stack { display: grid; gap: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.between { justify-content: space-between; }
+
+/* Buttons mit Druck- und Wellen-Animation */
+button, .btn {
+  position: relative; overflow: hidden; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer;
+  background: rgba(95, 227, 208, .1); border: 1px solid var(--edge); border-radius: 14px; padding: 10px 16px;
+  transition: transform .15s cubic-bezier(.3,.7,.4,1.5), background .2s, border-color .2s, box-shadow .2s;
+}
+button:hover { border-color: rgba(95,227,208,.5); }
+button:active { transform: scale(.94); }
+button.primary {
+  background: linear-gradient(135deg, #5fe3d0, #4fb4e8); color: #04202a; border: 0;
+  box-shadow: 0 6px 24px rgba(95, 227, 208, .35);
+}
+button.ghost { background: transparent; }
+button.danger { background: rgba(255,143,110,.12); border-color: rgba(255,143,110,.5); color: #ffd2c3; }
+button.chip { border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 14px; }
+button.chip[aria-pressed="true"] { background: rgba(95,227,208,.25); border-color: var(--glow); }
+button.link { background: none; border: 0; padding: 0; color: var(--glow); text-decoration: underline; font-weight: 600; }
+button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.ripple { position: absolute; border-radius: 50%; transform: scale(0); background: rgba(255,255,255,.35); animation: ripple .6s ease-out forwards; pointer-events: none; }
+@keyframes ripple { to { transform: scale(3.2); opacity: 0; } }
+:focus-visible { outline: 2px solid var(--glow); outline-offset: 3px; }
+
+input[type="text"], input[type="number"], input[type="time"], input[type="date"], input[type="datetime-local"] {
+  font: inherit; font-family: var(--f-mono); color: var(--ink); background: rgba(5, 18, 28, .6);
+  border: 1px solid var(--edge); border-radius: 12px; padding: 10px 12px; min-width: 0;
+  transition: border-color .2s, box-shadow .2s;
+}
+input[type="text"] { font-family: var(--f-body); font-size: 17px; width: 100%; }
+input:focus { border-color: var(--glow); box-shadow: 0 0 0 4px rgba(95,227,208,.15); outline: none; }
+label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+
+/* Schalter */
+.switch { position: relative; width: 50px; height: 30px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch span { position: absolute; inset: 0; border-radius: 99px; background: rgba(147,180,185,.25); transition: background .25s; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); transition: transform .3s cubic-bezier(.3,.7,.4,1.4); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.switch input:checked + span { background: var(--glow); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 2px solid var(--glow); outline-offset: 3px; }
+.check { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.check input { width: 22px; height: 22px; accent-color: var(--glow); margin-top: 2px; flex: none; }
+
+/* Ansichtswechsel */
+.view { animation: viewIn .45s cubic-bezier(.2,.8,.2,1); }
+@keyframes viewIn { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: none; } }
+.pop { animation: pop .5s cubic-bezier(.3,.7,.4,1.5); }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Kopf */
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.top .date { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+
+/* Gezeiten-Ring */
+.ringwrap { display: grid; place-items: center; position: relative; padding: 6px 0 2px; }
+.ring { width: min(78vw, 290px); height: auto; overflow: visible; }
+.ring .track { fill: none; stroke: rgba(147,180,185,.16); stroke-width: 14; }
+.ring .prog { fill: none; stroke-width: 14; stroke-linecap: round; transition: stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1); filter: drop-shadow(0 0 10px rgba(95,227,208,.55)); }
+.ring .tick { stroke: rgba(147,180,185,.35); stroke-width: 2; }
+.ring .bead { fill: var(--moon); filter: drop-shadow(0 0 8px rgba(246,236,200,.9)); }
+.ringcenter { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 4px; }
+.ringcenter .mode { font-family: var(--f-mono); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--glow); }
+.ringcenter .time { font-family: var(--f-display); font-weight: 800; font-size: clamp(2.2rem, 11vw, 3rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.ringcenter .until { font-size: 13px; color: var(--muted); }
+.eating .ringcenter .mode { color: var(--moon); }
+
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tile { background: rgba(5, 18, 28, .45); border: 1px solid var(--edge); border-radius: 16px; padding: 12px; min-width: 0; }
+.tile b { display: block; font-family: var(--f-display); font-size: 1.25rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.tile span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-family: var(--f-mono); }
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.kpis .tile b { font-size: 1.5rem; }
+.kpis .tile small { color: var(--muted); font-size: 12px; display: block; }
+
+/* Wochenband */
+.week { display: grid; gap: 7px; }
+.wrow { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: center; }
+.wrow .d { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.wrow.today .d { color: var(--moon); font-weight: 700; }
+.track { position: relative; height: 16px; background: rgba(127,182,255,.12); border-radius: 99px; overflow: hidden; }
+.seg { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: linear-gradient(90deg, #5fe3d0, #4fb4e8); transform-origin: left; animation: grow .8s cubic-bezier(.2,.8,.2,1) both; }
+.seg.cont { background: repeating-linear-gradient(135deg, #5fe3d0 0 5px, #3aa99c 5px 10px); }
+@keyframes grow { from { transform: scaleX(0); } }
+.nowmark { position: absolute; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: var(--moon); box-shadow: 0 0 10px var(--moon); }
+.axis { display: grid; grid-template-columns: 26px 1fr; gap: 8px; }
+.axis div { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
+
+/* Plan */
+.day { display: grid; gap: 10px; padding: 14px; border-radius: 18px; background: rgba(5,18,28,.45); border: 1px solid var(--edge); transition: opacity .3s, transform .3s; }
+.day.off { opacity: .55; }
+.day .times { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.day .meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: 12px; background: rgba(127,182,255,.14); color: #cfe2ff; font-family: var(--f-mono); }
+.pill.glow { background: rgba(95,227,208,.16); color: #b8fff3; }
+.pill.moon { background: rgba(246,236,200,.14); color: var(--moon); }
+.hint { font-size: 13px; padding: 10px 12px; border-radius: 14px; background: rgba(127,182,255,.1); border-left: 3px solid var(--glow-2); }
+.hint.warning { background: rgba(255,143,110,.1); border-left-color: var(--coral); }
+
+/* Auswertung */
+.chartbox { overflow-x: auto; }
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+svg.chart text { fill: var(--muted); font: 13px var(--f-mono); }
+svg.chart .grid { stroke: rgba(147,180,185,.18); fill: none; }
+svg.chart .barr { fill: url(#barGrad); transform-box: fill-box; transform-origin: bottom; animation: barUp .9s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes barUp { from { transform: scaleY(0); } }
+svg.chart .target { stroke: var(--moon); stroke-width: 2; stroke-dasharray: 5 4; fill: none; opacity: .8; }
+svg.chart .trend { stroke: var(--glow); stroke-width: 3; fill: none; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.4s ease-out forwards; filter: drop-shadow(0 0 6px rgba(95,227,208,.6)); }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+svg.chart .pt { fill: var(--glow-2); opacity: .7; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -2px; }
+.sess { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sess li { padding: 12px; border-radius: 14px; background: rgba(5,18,28,.45); display: grid; gap: 6px; font-size: 14px; animation: viewIn .4s both; }
+.sess .ok { color: var(--ok); }
+.tile b, .tile small, .badge b, .badge small { overflow-wrap: anywhere; } .sess .miss { color: var(--coral); }
+.sess summary { cursor: pointer; color: var(--glow); font-size: 13px; font-weight: 600; }
+.sess details .row { margin-top: 8px; }
+
+/* Tab-Leiste */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(to top, rgba(4, 12, 22, .96), rgba(4, 12, 22, .82));
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid var(--edge);
+}
+.tabbar nav { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.tabbar a {
+  position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 14px;
+  color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 700; transition: color .25s, transform .15s;
+}
+.tabbar a:active { transform: scale(.9); }
+.tabbar a svg { width: 24px; height: 24px; transition: transform .35s cubic-bezier(.3,.7,.4,1.6); }
+.tabbar a[aria-current="page"] { color: var(--ink); }
+.tabbar a[aria-current="page"] svg { transform: translateY(-3px) scale(1.12); color: var(--glow); filter: drop-shadow(0 0 8px rgba(95,227,208,.7)); }
+.tabbar a[aria-current="page"]::after { content: ""; position: absolute; bottom: 0; width: 18px; height: 3px; border-radius: 3px; background: var(--glow); box-shadow: 0 0 10px var(--glow); animation: pop .4s both; }
+
+/* Maskottchen Flo */
+.buddy {
+  position: fixed; z-index: 15; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--tabbar) + 6px + env(safe-area-inset-bottom, 0px));
+  width: min(520px, 100%); padding: 0 max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
+  display: flex; align-items: flex-end; gap: 6px; pointer-events: none;
+}
+.otterbtn { pointer-events: auto; background: none; border: 0; padding: 0; width: 92px; height: 92px; flex: none; border-radius: 50%; overflow: visible; box-shadow: none; }
+.otterbtn:active { transform: scale(.92) rotate(-4deg); }
+.otterbtn > span, .otterbtn > [data-otter] { display: block; width: 100%; height: 100%; }
+.otter { width: 100%; height: 100%; overflow: visible; display: block; }
+.otter .bob { animation: bob 3.2s ease-in-out infinite; transform-origin: 60px 100px; }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
+.otter .eyes { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.otter .pencil { transform-box: fill-box; transform-origin: 0 100%; animation: scribble 1.4s ease-in-out infinite; }
+@keyframes scribble { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-12deg); } }
+.otter.happy .bob { animation: hop .7s cubic-bezier(.3,.7,.4,1.5) 3; }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-18px) rotate(-6deg); } }
+.otter .waterline { animation: lap 2.6s ease-in-out infinite; }
+@keyframes lap { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-6px); } }
+.bubble {
+  pointer-events: auto; position: relative; margin-bottom: 44px; max-width: 340px;
+  background: rgba(246, 236, 200, .97); color: #10232b; border-radius: 18px 18px 18px 6px; padding: 11px 14px;
+  font-size: 14.5px; line-height: 1.4; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  transform-origin: 0 100%; animation: bubbleIn .45s cubic-bezier(.3,.7,.4,1.5);
+  cursor: pointer;
+}
+.bubble::before { content: ""; position: absolute; left: -7px; bottom: 10px; border: 8px solid transparent; border-right-color: rgba(246,236,200,.97); border-left: 0; }
+.bubble.out { animation: bubbleOut .35s ease-in forwards; }
+@keyframes bubbleIn { from { opacity: 0; transform: scale(.6) translateY(10px); } }
+@keyframes bubbleOut { to { opacity: 0; transform: scale(.8) translateY(8px); } }
+.bubble .who { display: block; font-family: var(--f-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #2b7c74; margin-bottom: 2px; }
+.bubble .caret { display: inline-block; width: 7px; height: 14px; background: #10232b; vertical-align: -2px; margin-left: 2px; animation: caret .8s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+
+/* Onboarding */
+.onboard { position: fixed; inset: 0; z-index: 40; overflow-y: auto; display: grid; place-items: center;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); }
+.onboard .panel { width: min(460px, 100%); display: grid; gap: 18px; }
+.onboard .hero { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.onboard .hero .otterbtn { width: 150px; height: 150px; pointer-events: none; }
+.onboard h1 { font-size: 1.9rem; text-align: center; }
+.dots { display: flex; justify-content: center; gap: 8px; }
+.dots i { width: 8px; height: 8px; border-radius: 99px; background: rgba(147,180,185,.35); transition: width .35s, background .35s; }
+.dots i.on { width: 26px; background: var(--glow); }
+.choices { display: grid; gap: 10px; }
+.choice { text-align: left; display: grid; gap: 2px; padding: 14px 16px; border-radius: 18px; background: rgba(5,18,28,.5); }
+.choice b { font-family: var(--f-display); font-size: 1.02rem; }
+.choice span { color: var(--muted); font-weight: 500; font-size: 13px; }
+.choice[aria-pressed="true"] { border-color: var(--glow); background: rgba(95,227,208,.16); box-shadow: 0 0 0 3px rgba(95,227,208,.15); }
+.splash { position: fixed; inset: 0; z-index: 50; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; transition: opacity .5s; }
+.splash .otterbtn { width: 130px; height: 130px; }
+
+.toast {
+  position: fixed; z-index: 60; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
+  background: var(--glass-strong); border: 1px solid var(--glow); color: var(--ink); padding: 10px 16px; border-radius: 99px;
+  font-weight: 700; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.4); animation: toastIn .4s cubic-bezier(.3,.7,.4,1.5);
+}
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, -16px) scale(.9); } }
+.confetti { position: fixed; z-index: 55; pointer-events: none; width: 8px; height: 8px; border-radius: 50%; background: var(--glow); animation: bubbleRise 1.6s ease-out forwards; }
+@keyframes bubbleRise { to { transform: translate(var(--dx), -220px) scale(.4); opacity: 0; } }
+
+.notice { font-size: 13px; padding: 10px 12px; border-radius: 14px; background: rgba(255,143,110,.12); border: 1px solid rgba(255,143,110,.35); }
+/* Körper-Szene */
+.bodycard .cellscene { width: 100%; height: auto; display: block; max-height: 220px; }
+.cellscene .membrane { fill: rgba(95,227,208,.07); stroke: rgba(95,227,208,.55); stroke-width: 2.5; transform-box: fill-box; transform-origin: center; animation: membrane 4s ease-in-out infinite; }
+@keyframes membrane { 50% { transform: scale(1.015, .985); } }
+.cellscene .nucleus { fill: rgba(127,182,255,.22); stroke: rgba(127,182,255,.5); stroke-width: 1.5; }
+.cellscene .nucleolus { fill: rgba(127,182,255,.45); }
+.nutri { fill: #ffd27a; animation: flowIn 3.2s ease-in-out infinite; }
+@keyframes flowIn { 0% { transform: translateX(0); opacity: 0; } 15%, 70% { opacity: 1; } 100% { transform: translateX(150px); opacity: 0; } }
+.hex { fill: rgba(246,236,200,.75); stroke: rgba(246,236,200,.95); stroke-width: 1; transform-box: fill-box; transform-origin: center; }
+.hex.fill { animation: hexIn 3s ease-out infinite; }
+@keyframes hexIn { 0% { transform: scale(0); opacity: 0; } 30%, 85% { transform: scale(1); opacity: 1; } 100% { opacity: 0; } }
+.hex.use { animation: hexUse 3.6s ease-in-out infinite; }
+@keyframes hexUse { 0%, 20% { transform: scale(1); opacity: 1; } 60% { transform: scale(.2); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.gluc { fill: #ffd27a; animation: outward 3.6s ease-out infinite; }
+@keyframes outward { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)); opacity: 0; } }
+.fatdrop { fill: rgba(255,210,122,.55); stroke: #ffd27a; stroke-width: 1.5; transform-box: fill-box; transform-origin: center; animation: fatShrink 4s ease-in-out infinite; }
+@keyframes fatShrink { 0%, 100% { transform: scale(1); } 50% { transform: scale(.7); } }
+.spark { fill: #fff3b0; animation: outward 2.6s ease-out infinite; }
+.ketone { animation: ketone 4s ease-in-out infinite; }
+.ketone circle { fill: rgba(95,227,208,.25); stroke: #5fe3d0; stroke-width: 1.2; }
+.ketone text { fill: #5fe3d0; font: 700 8px var(--f-mono); }
+@keyframes ketone { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(150px, -20px); opacity: 0; } }
+.junk { transform-box: fill-box; transform-origin: center; animation: junk 6s ease-in-out infinite; }
+.junk path { fill: #6f7d86; stroke: #a3b1b9; stroke-width: 1; }
+@keyframes junk { 0%, 42% { opacity: 1; transform: scale(1); } 58%, 92% { opacity: 0; transform: scale(.3); } 100% { opacity: 1; transform: scale(1); } }
+.phago { animation: phago 6s ease-in-out infinite; }
+.phago-o { fill: none; stroke: #7fb6ff; stroke-width: 2; stroke-dasharray: 5 3; }
+.phago-i { fill: rgba(127,182,255,.12); stroke: #7fb6ff; stroke-width: 1.2; }
+@keyframes phago { 0% { transform: translate(40px, 40px) scale(.5); opacity: 0; } 12% { opacity: 1; } 42% { transform: translate(110px, 88px) scale(1); } 58% { transform: translate(110px, 88px) scale(.8); opacity: 1; } 75%, 100% { transform: translate(110px, 88px) scale(.8); opacity: 0; } }
+.lyso { fill: rgba(255,143,110,.75); animation: lyso 6s ease-in-out infinite; }
+@keyframes lyso { 0%, 45% { transform: translate(0, 0); opacity: 0; } 50% { opacity: 1; } 62% { transform: translate(50px, -50px); opacity: 1; } 72%, 100% { transform: translate(50px, -50px); opacity: 0; } }
+.reborn { fill: #5fe3d0; animation: reborn 6s ease-out infinite; }
+@keyframes reborn { 0%, 66% { transform: translate(0, 0); opacity: 0; } 72% { opacity: 1; } 98%, 100% { transform: translate(var(--tx), var(--ty)); opacity: 0; } }
+.scenecap { text-align: center; font-size: 12px; color: var(--muted); font-family: var(--f-mono); margin-top: -6px; }
+.evdots { display: inline-flex; gap: 3px; vertical-align: middle; }
+.evdots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(147,180,185,.3); }
+.evdots i.on { background: var(--glow); box-shadow: 0 0 6px var(--glow); }
+.bodyline { position: relative; height: 10px; border-radius: 99px; background: rgba(127,182,255,.14); margin: 6px 8px; }
+.bodyfill { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: linear-gradient(90deg, #ffd27a, #5fe3d0, #7fb6ff); box-shadow: 0 0 12px rgba(95,227,208,.5); animation: grow 1.2s cubic-bezier(.2,.8,.2,1) both; transform-origin: left; }
+.bodyline i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: rgba(234,244,243,.35); }
+.bodynow { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--moon); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(246,236,200,.3), 0 0 12px var(--moon); } 50% { box-shadow: 0 0 0 10px rgba(246,236,200,0), 0 0 20px var(--moon); } }
+.stagechips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+.stagechip { flex: none; display: grid; text-align: left; padding: 7px 12px; border-radius: 14px; font-size: 13px; background: rgba(5,18,28,.5); }
+.stagechip small { font-family: var(--f-mono); font-size: 10px; color: var(--muted); font-weight: 500; }
+.stagechip.done { color: var(--ok); }
+.stagechip.cur { border-color: var(--moon); box-shadow: 0 0 0 2px rgba(246,236,200,.25); }
+.stagechip[aria-selected="true"] { background: rgba(95,227,208,.2); border-color: var(--glow); }
+.stagebody { display: grid; gap: 8px; animation: viewIn .4s both; }
+/* Belohnungen */
+.pearl { display: inline-block; width: 18px; height: 18px; border-radius: 50%; flex: none; background: radial-gradient(circle at 35% 30%, #fff, #f6ecc8 35%, #c9b98a 75%, #8f8361); animation: shimmer 3s ease-in-out infinite; }
+@keyframes shimmer { 0%, 100% { box-shadow: 0 0 8px rgba(246,236,200,.5); transform: scale(1); } 50% { box-shadow: 0 0 18px rgba(246,236,200,.95); transform: scale(1.1); } }
+.pearlbig { display: flex; align-items: center; gap: 8px; }
+.pearlbig b { font-family: var(--f-display); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.tile .pearl { width: 14px; height: 14px; margin-right: 4px; vertical-align: -1px; }
+.xpbar { height: 12px; border-radius: 99px; background: rgba(147,180,185,.18); overflow: hidden; }
+.xpbar i { display: block; height: 100%; width: var(--w); border-radius: 99px; background: linear-gradient(90deg, #f6ecc8, #5fe3d0); box-shadow: 0 0 12px rgba(95,227,208,.6); animation: xp 1.4s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes xp { from { width: 0; } }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.badge { display: grid; justify-items: center; text-align: center; gap: 3px; padding: 10px 6px; border-radius: 16px; background: rgba(5,18,28,.45); border: 1px solid var(--edge); animation: pop .5s both; }
+.badge:not(.on) > * { opacity: .5; }
+.badge b { font-size: 12px; line-height: 1.2; }
+.badge small { font-size: 10px; color: var(--muted); line-height: 1.25; }
+.bicon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: rgba(147,180,185,.15); color: var(--muted); }
+.bicon svg { width: 24px; height: 24px; }
+.badge.on { border-color: rgba(246,236,200,.45); }
+.badge.on .bicon { background: radial-gradient(circle at 35% 30%, #fff8dc, #f6ecc8 40%, #5fe3d0); color: #0a2a33; box-shadow: 0 0 16px rgba(246,236,200,.55); }
+.unlock { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px; background: rgba(2,8,16,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fadeIn .3s both; }
+.unlock.out { animation: fadeOut .3s both; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+.unlockcard { position: relative; overflow: hidden; width: min(340px, 100%); text-align: center; display: grid; justify-items: center; gap: 10px; padding: 28px 22px; border-radius: 26px; background: var(--glass-strong); border: 1px solid rgba(246,236,200,.5); animation: pop .6s cubic-bezier(.3,.7,.4,1.5) both; }
+.unlockcard > :not(.rays) { position: relative; }
+.rays { position: absolute; left: 50%; top: 70px; width: 440px; height: 440px; margin: -220px 0 0 -220px; border-radius: 50%; background: repeating-conic-gradient(rgba(246,236,200,.14) 0 10deg, transparent 10deg 20deg); animation: spin 14s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.bicon.big { width: 86px; height: 86px; background: radial-gradient(circle at 35% 30%, #fff8dc, #f6ecc8 40%, #5fe3d0); color: #0a2a33; box-shadow: 0 0 30px rgba(246,236,200,.7); animation: pop .7s .15s cubic-bezier(.3,.7,.4,1.6) both; }
+.bicon.big svg { width: 44px; height: 44px; }
+.pearlburst { position: fixed; z-index: 65; left: 50%; top: 38%; font-family: var(--f-display); font-weight: 800; font-size: 1.9rem; color: var(--moon); text-shadow: 0 0 18px rgba(246,236,200,.8); pointer-events: none; animation: burst 1.8s ease-out forwards; }
+@keyframes burst { 0% { opacity: 0; transform: translate(-50%, 20px) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } 100% { opacity: 0; transform: translate(-50%, -80px) scale(1); } }
+.ok { color: var(--ok); }
+.anticip { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; }
+@media (max-width: 380px) { .tiles { grid-template-columns: 1fr 1fr; } .otterbtn { width: 78px; height: 78px; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
+
+<canvas id="sea" aria-hidden="true"></canvas>
+<div id="toastRoot"></div>
+
+<div class="splash" id="splash">
+  <div class="otterbtn" data-otter></div>
+  <p class="eyebrow">FastFlow</p>
+  <p class="muted">Flo taucht auf …</p>
+</div>
+
+<!-- Onboarding -->
+<section class="onboard" id="onboard" hidden aria-label="Einrichtung">
+  <div class="panel card" id="obPanel"></div>
+</section>
+
+<div class="app" id="app" hidden>
+  <section data-view="heute" class="view-host"></section>
+  <section data-view="plan" class="view-host" hidden></section>
+  <section data-view="analyse" class="view-host" hidden></section>
+  <section data-view="gewicht" class="view-host" hidden></section>
+  <section data-view="profil" class="view-host" hidden></section>
+</div>
+
+<div class="buddy" id="buddy" hidden>
+  <button class="otterbtn" id="otterBtn" type="button" aria-label="Flo antippen für einen neuen Gedanken"><span data-otter></span></button>
+  <div class="bubble" id="bubble" role="status" aria-live="polite" hidden></div>
+</div>
+
+<div class="tabbar" id="tabbar" hidden>
+  <nav aria-label="Bereiche">
+    <a href="#heute" data-tab="heute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Heute</a>
+    <a href="#plan" data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18M8 14h3M8 17h6"/></svg>Plan</a>
+    <a href="#analyse" data-tab="analyse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Analyse</a>
+    <a href="#gewicht" data-tab="gewicht"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 16c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1"/><path d="M2 10c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1"/></svg>Gewicht</a>
+    <a href="#profil" data-tab="profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Profil</a>
+  </nav>
+</div>
+
+<script>
+// ================= Engine (Port der Swift-Engine) =================
+const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+const FULL = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+const dayIdx = d => (d.getDay() + 6) % 7;
+const clampM = m => Math.min(Math.max(m, 0), 1439);
+const R = {
+  start: r => clampM(r.start), end: r => clampM(r.end),
+  crosses: r => R.end(r) <= R.start(r),
+  dur: r => R.crosses(r) ? (1440 - R.start(r)) + R.end(r) : R.end(r) - R.start(r),
+  hours: r => Math.round(R.dur(r) / 60),
+};
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+function fastingAfter(plan, i) {
+  const r = plan[i]; if (!r.enabled) return null;
+  const endAbs = R.start(r) + R.dur(r);
+  for (let k = 1; k <= 7; k++) { const n = plan[(i + k) % 7]; if (n.enabled) return Math.max(0, k * 1440 + R.start(n) - endAbs); }
+  return null;
+}
+function badge(plan, i) { const f = fastingAfter(plan, i); return f === null ? '–' : Math.round(f / 60) + ':' + R.hours(plan[i]); }
+const at = (day, m) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), Math.floor(m / 60), m % 60, 0);
+function intervals(date, plan, from = -2, to = 8) {
+  const out = [];
+  for (let off = from; off <= to; off++) {
+    const day = addDays(date, off), i = dayIdx(day), r = plan[i];
+    if (!r.enabled) continue;
+    const s = at(day, R.start(r)), e = at(R.crosses(r) ? addDays(day, 1) : day, R.end(r));
+    if (e > s) out.push({ start: s, end: e, idx: i });
+  }
+  out.sort((a, b) => a.start - b.start);
+  const merged = [];
+  for (const it of out) {
+    const last = merged[merged.length - 1];
+    if (last && it.start <= last.end) last.end = new Date(Math.max(last.end, it.end)); else merged.push({ ...it });
+  }
+  return merged;
+}
+function fastingWindows(from, to, plan) {
+  if (to <= from) return [];
+  const days = Math.round((startOfDay(to) - startOfDay(from)) / 86400000);
+  const iv = intervals(from, plan, -2, days + 8), out = [];
+  for (let k = 0; k + 1 < iv.length; k++) {
+    if (iv[k].end >= from && iv[k + 1].start <= to) out.push({ start: iv[k].end, end: iv[k + 1].start });
+  }
+  return out;
+}
+const pad = n => String(n).padStart(2, '0');
+const hhmm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+const ddmm = d => pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.';
+const hoursText = m => { const h = Math.floor(m / 60), mm = m % 60; return h === 0 ? `${mm} min` : mm ? `${h} h ${mm} min` : `${h} h`; };
+function stage(h) {
+  if (h < 4) return 'Verdauung läuft (ca. 0–4 h)';
+  if (h < 12) return 'Körper nutzt Glykogenspeicher (ca. 4–12 h)';
+  if (h < 16) return 'Fettstoffwechsel nimmt zu (ca. 12–16 h)';
+  return 'Langes Fasten (16 h+)';
+}
+function resolve(date, plan) {
+  const iv = intervals(date, plan);
+  if (!iv.length) return null;
+  const active = iv.find(x => date >= x.start && date < x.end);
+  if (active) {
+    const endText = hhmm(active.end);
+    let sub;
+    if (active.end.toDateString() !== date.toDateString()) sub = `Dein Fenster läuft über Mitternacht bis ${DAYS[dayIdx(active.end)]} ${endText} Uhr.`;
+    else if (active.start < startOfDay(date)) sub = `Dein Übernacht-Fenster endet heute um ${endText} Uhr.`;
+    else { const p = fastingAfter(plan, active.idx); sub = p === null ? 'Genieße deine Mahlzeiten.' : `Genieße deine Mahlzeiten. Ab ${endText} Uhr startet eine ${hoursText(p)}-Fastenpause.`; }
+    return { mode: 'eating', start: active.start, end: active.end, stage: 'Essensfenster',
+      headline: `Essensfenster geöffnet bis ${endText} Uhr (${badge(plan, active.idx)})`, sub };
+  }
+  let prev = null, next = null;
+  for (const x of iv) { if (x.end <= date) prev = x; else if (x.start > date && !next) next = x; }
+  if (!prev || !next) return null;
+  return { mode: 'fasting', start: prev.end, end: next.start, stage: stage((date - prev.end) / 3600000),
+    headline: `Fastenphase seit ${hhmm(prev.end)} Uhr aktiv`,
+    sub: `Nächstes Essensfenster: ${DAYS[dayIdx(next.start)]} ${hhmm(next.start)} Uhr (in ${hoursText(Math.floor((next.start - date) / 60000))}).` };
+}
+function validate(plan) {
+  const on = plan.map((r, i) => i).filter(i => plan[i].enabled);
+  if (!on.length) return [{ sev: 'warning', day: -1, msg: 'Kein Tag aktiv. Aktiviere mindestens einen Wochentag.' }];
+  const nextOn = i => { for (let k = 1; k <= 7; k++) { const j = (i + k) % 7; if (plan[j].enabled) return j; } return -1; };
+  const out = [];
+  for (const i of on) {
+    const r = plan[i];
+    if (R.start(r) === R.end(r)) { out.push({ sev: 'warning', day: i, msg: `${FULL[i]}: Start und Ende sind gleich. Das ergibt 24 Stunden Essen.` }); continue; }
+    if (R.dur(r) > 720) out.push({ sev: 'info', day: i, msg: `${FULL[i]}: Essensfenster länger als 12 Stunden.` });
+    const p = fastingAfter(plan, i), n = nextOn(i);
+    if (p === 0) out.push({ sev: 'warning', day: i, msg: `${FULL[i]}: Fenster reicht bis in das Fenster von ${FULL[n]}. Beide werden zu einem Fenster zusammengelegt.` });
+    else if (p !== null && p < 720) out.push({ sev: 'info', day: i, msg: `${FULL[i]}: Nur ${hoursText(p)} Pause bis ${FULL[n]}.` });
+  }
+  return out.sort((a, b) => (a.sev === b.sev ? a.day - b.day : a.sev === 'warning' ? -1 : 1));
+}
+function plannedReminders(date, plan, lead, limit) {
+  const out = [];
+  for (const w of intervals(date, plan).filter(x => x.end > date)) {
+    if (w.start > date) out.push({ at: w.start, title: 'Essensfenster ist offen', body: `Dein Fenster läuft ${hoursText(Math.round((w.end - w.start) / 60000))}.` });
+    const warn = new Date(w.end - lead * 60000);
+    if (warn > date && warn > w.start) out.push({ at: warn, title: 'Essensfenster schließt bald', body: `Noch ${hoursText(lead)}, dann beginnt deine Fastenphase.` });
+  }
+  return out.sort((a, b) => a.at - b.at).slice(0, limit);
+}
+// ---- Verlauf, Serie, Auswertung, Gewicht ----
+const sEnd = s => Math.min(s.actualEnd ?? s.plannedEnd, s.plannedEnd);
+const sTarget = s => Math.floor((s.plannedEnd - s.start) / 60000);
+const sFasted = s => Math.max(0, Math.floor((sEnd(s) - s.start) / 60000));
+const sGoal = s => sFasted(s) >= sTarget(s);
+function streak(sessions, today, jokers) {
+  const byDay = new Map();
+  for (const s of sessions) { const k = startOfDay(new Date(s.plannedEnd)).getTime(); (byDay.get(k) || byDay.set(k, []).get(k)).push(s); }
+  if (!byDay.size) return { days: 0, used: 0, left: jokers };
+  const earliest = Math.min(...byDay.keys());
+  let day = startOfDay(today);
+  if (!byDay.has(day.getTime())) day = addDays(day, -1);
+  let count = 0, used = 0;
+  while (day.getTime() >= earliest) {
+    const e = byDay.get(day.getTime());
+    if (e) { if (e.every(sGoal)) count++; else if (used < jokers) { used++; count++; } else break; }
+    day = addDays(day, -1);
+  }
+  return { days: count, used, left: Math.max(0, jokers - used) };
+}
+function periodRange(period, now) {
+  if (period === 'week') { const s = addDays(startOfDay(now), -dayIdx(now)); return { start: s, end: addDays(s, 7) }; }
+  if (period === 'month') return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+  return { start: new Date(now.getFullYear(), 0, 1), end: new Date(now.getFullYear() + 1, 0, 1) };
+}
+function report(period, sessions, now, jokers) {
+  const r = periodRange(period, now);
+  const inP = sessions.filter(s => s.plannedEnd >= r.start.getTime() && s.plannedEnd < r.end.getTime() && s.plannedEnd <= now.getTime());
+  const sum = f => inP.reduce((a, s) => a + f(s), 0);
+  const st = streak(sessions, now, jokers);
+  const fasted = sum(sFasted) / 60, target = sum(sTarget) / 60;
+  return { fasted, target, long: sum(s => Math.max(0, sFasted(s) - 960)) / 60, n: inP.length, ok: inP.filter(sGoal).length, streak: st };
+}
+function buckets(period, sessions, now) {
+  const r = periodRange(period, now), byMonth = period === 'year';
+  const key = d => byMonth ? new Date(d.getFullYear(), d.getMonth(), 1).getTime() : startOfDay(d).getTime();
+  const f = new Map(), t = new Map();
+  for (const s of sessions) {
+    if (s.plannedEnd < r.start.getTime() || s.plannedEnd >= r.end.getTime()) continue;
+    const k = key(new Date(s.plannedEnd));
+    f.set(k, (f.get(k) || 0) + sFasted(s)); t.set(k, (t.get(k) || 0) + sTarget(s));
+  }
+  const out = [];
+  for (let c = r.start; c < r.end; c = byMonth ? new Date(c.getFullYear(), c.getMonth() + 1, 1) : addDays(c, 1)) {
+    out.push({ start: c, f: (f.get(c.getTime()) || 0) / 60, t: (t.get(c.getTime()) || 0) / 60 });
+  }
+  return out;
+}
+function emaTrend(weights, alpha = 0.1) {
+  const byDay = new Map();
+  for (const w of weights) { if (!(w.kg > 0)) continue; const k = startOfDay(new Date(w.date)).getTime(); (byDay.get(k) || byDay.set(k, []).get(k)).push(w.kg); }
+  let trend = null;
+  return [...byDay.keys()].sort((a, b) => a - b).map(k => {
+    const v = byDay.get(k), mean = v.reduce((a, b) => a + b, 0) / v.length;
+    trend = trend === null ? mean : trend + alpha * (mean - trend);
+    return { date: new Date(k), kg: mean, trend };
+  });
+}
+//--UI--
+// ================= Hilfen =================
+const $ = id => document.getElementById(id);
+const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const toM = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+const fmtM = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${hhmm(d)}`;
+const toDateInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const clock = ms => { const t = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(t / 3600)}:${pad(Math.floor(t % 3600 / 60))}:${pad(t % 60)}`; };
+const dayWord = d => { const t = startOfDay(new Date()), x = startOfDay(d); const diff = Math.round((x - t) / 86400000); return diff === 0 ? 'heute' : diff === 1 ? 'morgen' : diff === -1 ? 'gestern' : FULL[dayIdx(d)]; };
+
+// ================= Flo, der Seeotter =================
+const OTTER = `<svg class="otter" viewBox="0 0 120 120" aria-hidden="true">
+<g class="bob">
+<ellipse cx="60" cy="96" rx="33" ry="24" fill="#8d5d3e"/>
+<ellipse cx="60" cy="100" rx="21" ry="15" fill="#ecd2b2"/>
+<circle cx="35" cy="34" r="8.5" fill="#6e4630"/><circle cx="85" cy="34" r="8.5" fill="#6e4630"/>
+<circle cx="35" cy="34" r="4" fill="#e3b48f"/><circle cx="85" cy="34" r="4" fill="#e3b48f"/>
+<ellipse cx="60" cy="56" rx="30" ry="27" fill="#8d5d3e"/>
+<ellipse cx="60" cy="67" rx="19" ry="13" fill="#ecd2b2"/>
+<circle cx="43" cy="66" r="4" fill="#ff9c86" opacity=".45"/><circle cx="77" cy="66" r="4" fill="#ff9c86" opacity=".45"/>
+<g class="eyes"><circle cx="49" cy="52" r="3.6" fill="#16100c"/><circle cx="71" cy="52" r="3.6" fill="#16100c"/><circle cx="50.2" cy="50.8" r="1.2" fill="#fff"/><circle cx="72.2" cy="50.8" r="1.2" fill="#fff"/></g>
+<g fill="none" stroke="#f6ecc8" stroke-width="2"><circle cx="49" cy="52" r="8"/><circle cx="71" cy="52" r="8"/><path d="M57 51.5q3-2 6 0"/></g>
+<ellipse cx="60" cy="62" rx="4.6" ry="3.2" fill="#2a1b13"/>
+<path d="M60 65.2q-3.5 4.5-7 1.2M60 65.2q3.5 4.5 7 1.2" fill="none" stroke="#2a1b13" stroke-width="1.6" stroke-linecap="round"/>
+<g stroke="#2a1b13" stroke-width=".9" opacity=".55" stroke-linecap="round" fill="none"><path d="M44 64l-12-2M44 67l-12 1M76 64l12-2M76 67l12 1"/></g>
+<g transform="rotate(-8 60 92)"><rect x="42" y="82" width="36" height="25" rx="3" fill="#5fe3d0" stroke="#2b7c74" stroke-width="1.5"/><path d="M60 82v25" stroke="#2b7c74" stroke-width="1.2"/><path d="M46 89h10M46 94h8M64 89h10M64 94h7" stroke="#0e3c38" stroke-width="1.2" stroke-linecap="round"/></g>
+<ellipse cx="45" cy="92" rx="6" ry="4.5" fill="#6e4630"/>
+<g class="pencil"><ellipse cx="76" cy="92" rx="6" ry="4.5" fill="#6e4630"/><path d="M78 90l12-14" stroke="#ffcc66" stroke-width="3.2" stroke-linecap="round"/><path d="M90 76l2-2.4" stroke="#ff8f6e" stroke-width="3.2" stroke-linecap="round"/></g>
+</g>
+<g class="waterline"><path d="M-6 108q8-5 16 0t16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0v16H-6z" fill="#0f4d63" opacity=".92"/><path d="M-6 108q8-5 16 0t16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0" fill="none" stroke="#5fe3d0" stroke-width="1.5" opacity=".7"/></g>
+</svg>`;
+function mountOtters() { document.querySelectorAll('[data-otter]').forEach(el => { if (!el.firstChild) el.innerHTML = OTTER; }); }
+
+const flo = { idx: {}, timer: null, typing: null, lastView: null };
+function floLines(view) {
+  const name = state.profile?.name || 'du';
+  const real = new Date();
+  const L = [];
+  const st = streak(state.sessions, real, state.jokers);
+  const lastS = state.sessions[state.sessions.length - 1];
+  if (view === 'heute') {
+    const snap = resolve(now, state.plan);
+    if (!snap) return [`Im Plan ist gerade kein Tag aktiv. Zeigst du mir im Tab Plan, wann du essen möchtest?`];
+    const rem = Math.floor((snap.end - now) / 60000), p = (now - snap.start) / (snap.end - snap.start);
+    const endT = hhmm(snap.end);
+    if (snap.mode === 'fasting') {
+      if (p < 0.15) L.push(`Die Ebbe hat begonnen, ${name}. Ich hab's notiert: Die Flut kommt ${dayWord(snap.end)} um ${endT} Uhr.`);
+      else if (p < 0.5) L.push(`Ich hab nachgelesen: Hunger kommt oft in Wellen und ebbt nach einer Weile wieder ab. Ein Glas Wasser hilft vielen.`);
+      else if (p < 0.85) L.push(`Mehr als die Hälfte geschafft! Noch ${hoursText(rem)}. Du bleibst ruhig wie das Meer bei Nacht.`);
+      else L.push(`Fast geschafft, ${name}! Noch ${hoursText(rem)} bis zur Flut. Ich bin richtig stolz auf dich.`);
+      const h = now.getHours();
+      if (h >= 23 || h < 5) L.push(`Es ist spät. Schlaf zählt auch zur Fastenzeit – die entspannteste Strecke überhaupt.`);
+      L.push(`Wasser, ungesüßter Tee und schwarzer Kaffee passen in die Fastenzeit. Hab ich mir dick unterstrichen.`);
+    } else {
+      if (rem <= 45) L.push(`Gleich schließt dein Fenster um ${endT} Uhr. Noch ${hoursText(rem)} für eine letzte Mahlzeit.`);
+      else if (snap.end.toDateString() !== now.toDateString()) L.push(`Heute läuft dein Fenster über Mitternacht bis ${endT} Uhr. Ich bleib wach und schreib mit!`);
+      else if (p < 0.2) L.push(`Flut! Dein Essensfenster ist offen bis ${endT} Uhr. Guten Appetit, ${name}!`);
+      else L.push(`Dein Fenster ist noch ${hoursText(rem)} offen. Was gibt's heute Gutes?`);
+      L.push(`Ich hab gelesen: Eiweiß und Gemüse halten viele Menschen lange satt. Vielleicht hilft dir das für die nächste Ebbe.`);
+    }
+    if (st.days >= 2) L.push(`Du hast es bisher super durchgehalten: ${st.days} Tage in Folge!`);
+    if (lastS && !sGoal(lastS)) L.push(`Die letzte Fastenphase lief anders als geplant? Kein Problem. Ich lerne gerade: Dranbleiben zählt mehr als Perfektsein.`);
+    L.push(`Seeotter halten beim Schlafen Händchen, damit sie nicht abtreiben. Ich halt mich an dir fest – du dich an deinem Plan?`);
+  } else if (view === 'plan') {
+    const hints = validate(state.plan);
+    if (hints.length) L.push(`Mir ist was aufgefallen: ${hints[0].msg}`);
+    L.push(`Endet ein Fenster nach Mitternacht? Stell einfach eine Endzeit vor der Startzeit ein. Ich rechne das richtig um.`);
+    L.push(`Tipp aus meinem Notizbuch: Ein Plan, den du gut halten kannst, schlägt einen perfekten Plan, der dich stresst.`);
+    L.push(`Am Wochenende anders essen ist völlig okay. Jeder Tag darf seine eigenen Gezeiten haben.`);
+  } else if (view === 'analyse') {
+    if (!state.sessions.length) L.push(`Hier sammle ich deine Fastenphasen. Sobald die erste vorbei ist, rechne ich los – ich liebe Statistik!`);
+    else {
+      const r = report(analysePeriod, state.sessions, real, state.jokers);
+      if (r.n) L.push(`Ich hab nachgerechnet: ${Math.round(r.ok / r.n * 100)} % deiner Fastenphasen in diesem Zeitraum geschafft.`);
+      const rw = rewards();
+      L.push(rw.next ? `Du hast ${rw.pearls} Perlen gesammelt. Noch ${rw.toNext} bis zum Rang „${rw.next.name}“ – das schaffst du!` : `Gezeitenmeister! ${rw.pearls} Perlen. Ich bin sprachlos – und das passiert einem Otter selten.`);
+      const nextBadge = rw.badges.find(b => !b.on); if (nextBadge) L.push(`Nächstes Abzeichen in Sicht: „${nextBadge.name}“ – ${nextBadge.desc}.`);
+      L.push(`Du hast noch ${r.streak.left} ${r.streak.left === 1 ? 'Joker' : 'Joker'}. Ein verpatzter Tag reißt deine Serie also nicht gleich ab.`);
+    }
+  } else if (view === 'gewicht') {
+    const pts = emaTrend(state.weights);
+    if (pts.length < 2) L.push(`Trag dein Gewicht ein, wann du magst. Ich zeichne daraus eine ruhige Trendlinie statt Tageszacken.`);
+    else {
+      const d = pts[pts.length - 1].trend - pts[0].trend;
+      L.push(d <= 0
+        ? `Dein Trend zeigt ${Math.abs(d).toFixed(1)} kg weniger seit dem ${ddmm(pts[0].date)} – schön gleichmäßig, wie Ebbe und Flut.`
+        : `Der Trend liegt ${d.toFixed(1)} kg über dem Anfang. Tageswerte schwanken stark – ich schau lieber auf Wochen.`);
+    }
+    L.push(`Am besten vergleichbar sind Messungen morgens nach dem Aufstehen. Hab ich gelesen!`);
+  } else if (view === 'profil') {
+    L.push(`Hier kannst du deinen Namen ändern und sehen, wann ich dich erinnern würde.`);
+    L.push(`Wichtig, auch für einen Lernotter wie mich: Bei Beschwerden lieber ärztlichen Rat holen. Fasten soll sich gut anfühlen.`);
+  }
+  L.push(`Wusstest du? Ebbe und Flut wechseln etwa alle sechs Stunden. Dein Rhythmus darf aber ganz deiner sein.`);
+  return L;
+}
+function floSay(text, { happy = false } = {}) {
+  const b = $('bubble');
+  clearTimeout(flo.timer); clearInterval(flo.typing);
+  b.hidden = false; b.classList.remove('out');
+  b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
+  b.innerHTML = `<span class="who">Flo</span><span class="txt"></span><span class="caret"></span>`;
+  const t = b.querySelector('.txt');
+  if (REDUCE) { t.textContent = text; b.querySelector('.caret').remove(); }
+  else {
+    let i = 0;
+    flo.typing = setInterval(() => { i += 2; t.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(flo.typing); b.querySelector('.caret')?.remove(); } }, 22);
+  }
+  const otter = document.querySelector('#otterBtn .otter');
+  if (otter && happy && !REDUCE) { otter.classList.remove('happy'); requestAnimationFrame(() => otter.classList.add('happy')); setTimeout(() => otter.classList.remove('happy'), 2200); }
+  flo.timer = setTimeout(() => { b.classList.add('out'); setTimeout(() => { b.hidden = true; }, 350); }, 12000);
+}
+function floNext(view, reset = false) {
+  const lines = floLines(view);
+  if (reset) flo.idx[view] = 0;
+  const i = (flo.idx[view] ?? 0) % lines.length;
+  flo.idx[view] = i + 1;
+  floSay(lines[i]);
+}
+
+// ================= Animiertes Meer =================
+const sea = { tide: 0.64, targetTide: 0.64, moon: 1, targetMoon: 1, running: false };
+function initSea() {
+  const c = $('sea'), ctx = c.getContext('2d');
+  let W = 0, H = 0, stars = [], plankton = [];
+  function resize() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    stars = Array.from({ length: Math.round(W * H / 4200) }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.62, r: Math.random() * 1.3 + 0.3, p: Math.random() * 6.28, s: 0.6 + Math.random() * 1.6 }));
+    plankton = Array.from({ length: 46 }, () => ({ x: Math.random() * W, y: H * (0.7 + Math.random() * 0.3), r: Math.random() * 1.8 + 0.6, v: 0.12 + Math.random() * 0.3, p: Math.random() * 6.28 }));
+    if (REDUCE) draw(0);
+  }
+  function draw(t) {
+    const time = t / 1000;
+    sea.tide += (sea.targetTide - sea.tide) * (REDUCE ? 1 : 0.02);
+    sea.moon += (sea.targetMoon - sea.moon) * (REDUCE ? 1 : 0.03);
+    const horizon = H * sea.tide;
+    let g = ctx.createLinearGradient(0, 0, 0, horizon);
+    g.addColorStop(0, '#030812'); g.addColorStop(0.55, '#0a1d33'); g.addColorStop(1, '#14425a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, horizon + 2);
+    ctx.fillStyle = '#ffffff';
+    for (const s of stars) {
+      if (s.y > horizon - 6) continue;
+      ctx.globalAlpha = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(time * s.s + s.p));
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // Mond: Füllgrad = Fortschritt der Fastenphase (Vollmond = Ziel)
+    const mr = Math.max(20, Math.min(W, H) * 0.05), mx = W * 0.8, my = Math.min(H * 0.13, 110) + 4 * Math.sin(time * 0.25);
+    const rg = ctx.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 4.5);
+    rg.addColorStop(0, `rgba(246,236,200,${0.12 + 0.18 * sea.moon})`); rg.addColorStop(1, 'rgba(246,236,200,0)');
+    ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(mx, my, mr * 4.5, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#1a2a3b'; ctx.beginPath(); ctx.arc(mx, my, mr, 0, 6.283); ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(mx, my, mr, 0, 6.283); ctx.clip();
+    ctx.fillStyle = '#f6ecc8'; ctx.beginPath(); ctx.arc(mx - (1 - sea.moon) * mr * 2.05, my, mr, 0, 6.283); ctx.fill();
+    ctx.fillStyle = 'rgba(120,110,80,.18)';
+    for (const [dx, dy, rr] of [[-0.3, -0.2, 0.22], [0.25, 0.3, 0.15], [0.1, -0.45, 0.1]]) { ctx.beginPath(); ctx.arc(mx + dx * mr, my + dy * mr, rr * mr, 0, 6.283); ctx.fill(); }
+    ctx.restore();
+    // Wasser
+    g = ctx.createLinearGradient(0, horizon, 0, H);
+    g.addColorStop(0, '#0f3d52'); g.addColorStop(1, '#030d17');
+    ctx.fillStyle = g; ctx.fillRect(0, horizon, W, H - horizon);
+    // Mondspiegelung
+    for (let i = 0; i < 16; i++) {
+      const y = horizon + 8 + i * 11, w = mr * (1.8 - i * 0.07) * (0.55 + 0.45 * Math.sin(time * 1.8 + i * 1.3));
+      ctx.fillStyle = `rgba(246,236,200,${(0.32 * (1 - i / 16)) * sea.moon})`;
+      ctx.fillRect(mx - w / 2 + Math.sin(time + i) * 5, y, w, 2);
+    }
+    // Wellen
+    const layers = [
+      { amp: 5, len: 170, spd: 0.7, off: 0, col: 'rgba(95,227,208,0.10)' },
+      { amp: 8, len: 250, spd: -0.45, off: 16, col: 'rgba(79,180,232,0.13)' },
+      { amp: 11, len: 330, spd: 0.32, off: 38, col: 'rgba(6,30,46,0.78)' },
+      { amp: 14, len: 420, spd: -0.22, off: 80, col: 'rgba(3,16,28,0.85)' },
+    ];
+    for (const L of layers) {
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (let x = 0; x <= W + 12; x += 12) {
+        const y = horizon + L.off + Math.sin(x / L.len * 6.283 + time * L.spd) * L.amp + Math.sin(x / (L.len * 0.53) + time * L.spd * 1.7) * L.amp * 0.4;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H); ctx.closePath(); ctx.fillStyle = L.col; ctx.fill();
+    }
+    // Leuchtplankton
+    ctx.fillStyle = '#5fe3d0';
+    for (const p of plankton) {
+      if (!REDUCE) { p.y -= p.v; p.x += Math.sin(time + p.p) * 0.25; }
+      if (p.y < horizon + 30) { p.y = H + 5; p.x = Math.random() * W; }
+      ctx.globalAlpha = 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(time * 2.2 + p.p));
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  function loop(t) { if (document.hidden) { sea.running = false; return; } draw(t); requestAnimationFrame(loop); }
+  function start() { if (REDUCE || sea.running) return; sea.running = true; requestAnimationFrame(loop); }
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) start(); });
+  resize(); start();
+  sea.redraw = () => { if (REDUCE) draw(0); };
+}
+function updateSea() {
+  const snap = resolve(now, state.plan);
+  if (!snap || snap.mode === 'eating') { sea.targetTide = 0.56; sea.targetMoon = 1; }
+  else { sea.targetTide = 0.68; sea.targetMoon = Math.max(0.08, Math.min(1, (now - snap.start) / (snap.end - snap.start))); }
+  sea.redraw?.();
+}
+
+// ================= Effekte =================
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled || REDUCE || b.classList.contains('otterbtn')) return;
+  const r = b.getBoundingClientRect(), s = Math.max(r.width, r.height);
+  const sp = document.createElement('span'); sp.className = 'ripple';
+  sp.style.width = sp.style.height = s + 'px'; sp.style.left = (e.clientX - r.left - s / 2) + 'px'; sp.style.top = (e.clientY - r.top - s / 2) + 'px';
+  b.appendChild(sp); setTimeout(() => sp.remove(), 650);
+});
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
+  $('toastRoot').replaceChildren(t); setTimeout(() => { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2200);
+}
+function celebrate() {
+  if (REDUCE) return;
+  const cx = window.innerWidth / 2, cy = window.innerHeight * 0.45;
+  for (let i = 0; i < 26; i++) {
+    const d = document.createElement('i'); d.className = 'confetti';
+    d.style.left = (cx + (Math.random() - 0.5) * 160) + 'px'; d.style.top = (cy + Math.random() * 60) + 'px';
+    d.style.setProperty('--dx', ((Math.random() - 0.5) * 220) + 'px');
+    d.style.background = ['#5fe3d0', '#f6ecc8', '#7fb6ff'][i % 3];
+    d.style.animationDelay = (Math.random() * 0.3) + 's';
+    document.body.appendChild(d); setTimeout(() => d.remove(), 2000);
+  }
+}
+function countUp(root) {
+  root.querySelectorAll('[data-count]').forEach(el => {
+    const to = +el.dataset.count, suf = el.dataset.suffix || '', dec = +(el.dataset.dec || 0);
+    if (REDUCE) { el.textContent = to.toFixed(dec) + suf; return; }
+    const t0 = performance.now(), dur = 900;
+    const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = (to * e).toFixed(dec) + suf; if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+}
+
+// ================= Daten & Speicher =================
+const PRESETS = {
+  p16: { title: '16:8 · Klassiker', sub: 'Jeden Tag 12–20 Uhr essen', rules: () => DAYS.map(() => ({ enabled: true, start: 720, end: 1200 })) },
+  p14: { title: '14:10 · Sanfter Einstieg', sub: 'Jeden Tag 9–19 Uhr essen', rules: () => DAYS.map(() => ({ enabled: true, start: 540, end: 1140 })) },
+  p18: { title: '18:6 · Fortgeschritten', sub: 'Jeden Tag 10–16 Uhr essen', rules: () => DAYS.map(() => ({ enabled: true, start: 600, end: 960 })) },
+  pweek: { title: 'Woche & Wochenende', sub: 'Mo–Fr 8–14 Uhr · Sa 17–2 Uhr nachts · So 16–22 Uhr', rules: () => DAYS.map((_, i) => i === 5 ? { enabled: true, start: 1020, end: 120 } : i === 6 ? { enabled: true, start: 960, end: 1320 } : { enabled: true, start: 480, end: 840 }) },
+};
+const state = { profile: null, plan: PRESETS.p16.rules(), planSaved: false, jokers: 2, sessions: [], weights: [], ready: false };
+const LS_KEY = 'fastflow-gezeiten-v1';
+let pendingPlanSave = null;
+
+const store = {
+  mode: 'local', col: null, unsub: null,
+  async init() {
+    let db = null, uid = null;
+    try {
+      if (window.claude?.use) {
+        const [d, u] = await Promise.all([claude.use('db'), claude.use('user')]);
+        db = d; uid = u ? await u.id() : null;
+      }
+    } catch (e) { db = null; }
+    if (!db || !uid) return this.fallback(null);
+    this.mode = 'db'; this.col = db.collection('data/users/' + uid);
+    let first = true;
+    const timer = setTimeout(() => { if (first) this.fallback('Dein Konto antwortet gerade nicht. FastFlow speichert vorerst nur in diesem Browser.'); }, 10000);
+    this.unsub = this.col.onSnapshot(snap => {
+      clearTimeout(timer);
+      const sessions = [], weights = []; let planDoc = null, profDoc = null;
+      for (const d of snap.docs) {
+        const v = d.data() || {};
+        if (d.id === 'plan') planDoc = v; else if (d.id === 'profile') profDoc = v;
+        else if (v.kind === 'session') sessions.push({ id: d.id, start: v.start, plannedEnd: v.plannedEnd, actualEnd: v.actualEnd ?? null });
+        else if (v.kind === 'weight') weights.push({ id: d.id, date: v.date, kg: v.kg });
+      }
+      if (planDoc && Array.isArray(planDoc.rules) && planDoc.rules.length === 7) {
+        if (!pendingPlanSave) state.plan = planDoc.rules;
+        state.jokers = Number.isFinite(planDoc.jokers) ? planDoc.jokers : 2; state.planSaved = true;
+      }
+      state.profile = profDoc && profDoc.onboarded ? { name: String(profDoc.name || '').slice(0, 30), onboarded: true, since: Number(profDoc.since) || 0 } : null;
+      state.sessions = sessions.sort((a, b) => a.plannedEnd - b.plannedEnd);
+      state.weights = weights.sort((a, b) => a.date - b.date);
+      if (first) { first = false; boot(); } else refresh();
+    }, err => { clearTimeout(timer); this.fallback('Speichern im Konto klappt gerade nicht (' + (err?.code || 'Fehler') + '). FastFlow speichert vorerst nur in diesem Browser.'); });
+  },
+  fallback(msg) {
+    if (this.unsub) { try { this.unsub(); } catch (e) {} this.unsub = null; }
+    this.mode = 'local'; this.col = null; this.notice = msg;
+    try {
+      const s = JSON.parse(localStorage.getItem(LS_KEY));
+      if (s && Array.isArray(s.plan) && s.plan.length === 7) Object.assign(state, { plan: s.plan, planSaved: !!s.planSaved, jokers: s.jokers ?? 2, sessions: s.sessions || [], weights: s.weights || [], profile: s.profile || null });
+    } catch (e) {}
+    if (!state.ready) boot(); else refresh();
+  },
+  saveLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ plan: state.plan, planSaved: state.planSaved, jokers: state.jokers, sessions: state.sessions, weights: state.weights, profile: state.profile })); } catch (e) {}
+  },
+  async savePlan() { if (this.mode === 'db') await this.col.doc('plan').set({ rules: state.plan, jokers: state.jokers }); else this.saveLocal(); },
+  async saveProfile() { if (this.mode === 'db') await this.col.doc('profile').set({ name: state.profile.name, onboarded: true, since: state.profile.since || Date.now() }); else this.saveLocal(); },
+  async putSession(s) {
+    if (this.mode === 'db') return this.col.doc(s.id).set({ kind: 'session', start: s.start, plannedEnd: s.plannedEnd, actualEnd: s.actualEnd ?? null });
+    const i = state.sessions.findIndex(x => x.id === s.id); if (i >= 0) state.sessions[i] = s; else state.sessions.push(s);
+    state.sessions.sort((a, b) => a.plannedEnd - b.plannedEnd); this.saveLocal();
+  },
+  async putWeight(w) {
+    if (this.mode === 'db') return this.col.doc(w.id).set({ kind: 'weight', date: w.date, kg: w.kg });
+    const i = state.weights.findIndex(x => x.id === w.id); if (i >= 0) state.weights[i] = w; else state.weights.push(w);
+    state.weights.sort((a, b) => a.date - b.date); this.saveLocal();
+  },
+  async remove(id) {
+    if (this.mode === 'db') return this.col.doc(id).delete();
+    state.sessions = state.sessions.filter(x => x.id !== id); state.weights = state.weights.filter(x => x.id !== id);
+    if (id === 'profile') state.profile = null; if (id === 'plan') state.planSaved = false;
+    this.saveLocal();
+  },
+};
+function savePlanSoon() {
+  state.planSaved = true; clearTimeout(pendingPlanSave);
+  pendingPlanSave = setTimeout(async () => {
+    try { await store.savePlan(); toast('Plan gespeichert'); } catch (e) { toast('Plan konnte nicht gespeichert werden'); }
+    pendingPlanSave = null; recordCompleted();
+  }, 500);
+}
+let recording = false;
+const celebrated = new Set();
+async function recordCompleted() {
+  if (!state.planSaved || !state.profile || recording) return;
+  recording = true;
+  try {
+    const real = new Date();
+    const last = state.sessions.length ? Math.max(...state.sessions.map(s => s.plannedEnd)) : null;
+    const lookback = addDays(real, -7).getTime();
+    const since = state.profile.since || 0;
+    const from = new Date(Math.max(last ?? lookback, lookback, since));
+    // Nur Phasen, die nach der Einrichtung begonnen haben – keine erfundene Vergangenheit.
+    const wins = fastingWindows(from, real, state.plan).filter(w => (last === null || w.start.getTime() >= last) && w.start.getTime() >= since);
+    for (const w of wins) await store.putSession({ id: 's_' + w.start.getTime(), start: w.start.getTime(), plannedEnd: w.end.getTime(), actualEnd: null });
+    if (wins.length) {
+      const newest = wins[wins.length - 1];
+      if (real - newest.end < 3 * 3600000 && !celebrated.has(newest.start.getTime())) {
+        celebrated.add(newest.start.getTime());
+        const done = { start: newest.start.getTime(), plannedEnd: newest.end.getTime(), actualEnd: null };
+        setTimeout(() => { celebrate(); pearlBurst(pearlsFor(done)); floSay(`Geschafft, ${state.profile.name}! Deine Fastenphase ist vorbei. Dafür gibt's ${pearlsFor(done)} Perlen!`, { happy: true }); setTimeout(checkUnlocks, 2000); }, 900);
+      }
+      if (store.mode === 'local') refresh();
+    }
+  } catch (e) { toast('Verlauf konnte nicht aktualisiert werden'); }
+  recording = false;
+}
+
+// ================= Körper: was beim Fasten passiert =================
+// Fachlich geprüft: Zeitangaben sind Richtwerte und individuell verschieden.
+// Autophagie (Zellrecycling) ist beim Menschen wenig erforscht; Hinweise gibt es vor allem
+// bei längerem Fasten (ca. 24 h+), deutliche Effekte vor allem aus Tierstudien.
+const BODY = [
+  { from: 0, to: 4, key: 'digest', title: 'Verdauung', short: '0–4 h',
+    what: 'Dein Körper verarbeitet die letzte Mahlzeit. Blutzucker und Insulin steigen an und sinken dann wieder.',
+    ev: 'gut belegt', evLevel: 3 },
+  { from: 4, to: 12, key: 'glycogen', title: 'Speicher anzapfen', short: '4–12 h',
+    what: 'Insulin ist gesunken. Die Leber gibt gespeicherten Zucker (Glykogen) frei, und der Fettabbau zieht langsam an.',
+    ev: 'gut belegt', evLevel: 3 },
+  { from: 12, to: 16, key: 'fat', title: 'Fettstoffwechsel', short: '12–16 h',
+    what: 'Dein Körper nutzt mehr Fett als Energiequelle. Die Leber beginnt, Ketonkörper zu bilden – wie stark, ist von Mensch zu Mensch sehr verschieden.',
+    ev: 'belegt · Zeitpunkt variiert', evLevel: 2 },
+  { from: 16, to: 24, key: 'deep', title: 'Tiefe Ebbe', short: '16–24 h',
+    what: 'Fettverbrennung und Ketonkörper nehmen weiter zu. Zellrecycling (Autophagie) könnte langsam anlaufen – in Tierstudien deutlich, beim Menschen noch wenig erforscht.',
+    ev: 'Ketone belegt · Zellrecycling unsicher', evLevel: 2 },
+  { from: 24, to: Infinity, key: 'recycle', title: 'Zellrecycling', short: '24 h+',
+    what: 'Bei längerem Fasten gibt es Hinweise auf mehr Autophagie: Zellen bauen beschädigte Bestandteile ab und verwerten sie neu. Wann genau das beim Menschen passiert, ist noch offen.',
+    ev: 'erste Hinweise aus Studien', evLevel: 1 },
+];
+const bodyStageIndex = h => Math.max(0, BODY.findIndex(s => h >= s.from && h < s.to));
+const EV_DOTS = n => `<span class="evdots" aria-label="Beleglage ${n} von 3">${[1, 2, 3].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
+
+/** Animierte Zell-Szene je Phase. Alle Animationen sind reine CSS-Keyframes. */
+function cellScene(key) {
+  const cell = `<ellipse class="membrane" cx="160" cy="92" rx="128" ry="72"/><circle class="nucleus" cx="215" cy="98" r="22"/><circle class="nucleolus" cx="220" cy="94" r="7"/>`;
+  let inner = '';
+  if (key === 'digest' || key === 'refuel') {
+    inner = Array.from({ length: 7 }, (_, i) => `<circle class="nutri" cx="${-8 - i * 4}" cy="${62 + (i * 13) % 60}" r="${4 + (i % 3)}" style="animation-delay:${i * 0.45}s"/>`).join('')
+      + Array.from({ length: 6 }, (_, i) => `<polygon class="hex fill" points="${hexPts(105 + (i % 3) * 15, 80 + Math.floor(i / 3) * 14 + (i % 2) * 6, 7)}" style="animation-delay:${1 + i * 0.5}s"/>`).join('');
+  } else if (key === 'glycogen') {
+    inner = Array.from({ length: 9 }, (_, i) => `<polygon class="hex use" points="${hexPts(95 + (i % 3) * 15, 70 + Math.floor(i / 3) * 14 + (i % 2) * 6, 7)}" style="animation-delay:${i * 0.4}s"/>`).join('')
+      + Array.from({ length: 6 }, (_, i) => `<circle class="gluc" cx="${110}" cy="${85}" r="3" style="animation-delay:${i * 0.6}s;--tx:${60 + i * 12}px;--ty:${(i % 2 ? -1 : 1) * (10 + i * 5)}px"/>`).join('');
+  } else if (key === 'fat') {
+    inner = [[100, 72, 16], [128, 108, 11], [88, 112, 9]].map(([x, y, r], i) => `<circle class="fatdrop" cx="${x}" cy="${y}" r="${r}" style="animation-delay:${i * 0.7}s"/>`).join('')
+      + Array.from({ length: 7 }, (_, i) => `<circle class="spark" cx="105" cy="90" r="2.4" style="animation-delay:${i * 0.45}s;--tx:${40 + i * 14}px;--ty:${-30 + i * 9}px"/>`).join('')
+      + Array.from({ length: 3 }, (_, i) => `<g class="ketone" style="animation-delay:${i * 1.3}s"><circle cx="120" cy="${80 + i * 12}" r="7"/><text x="120" y="${83.5 + i * 12}" text-anchor="middle">K</text></g>`).join('');
+  } else {
+    inner = `<g class="junk"><path d="M100 78l9-5 5 8-8 6z"/><path d="M118 95l7 2-2 9-8-3z"/><path d="M96 102l6-6 6 6-5 5z"/><path d="M112 70l6 1 1 6-6 1z"/></g>
+      <g class="phago"><circle cx="0" cy="0" r="27" class="phago-o"/><circle cx="0" cy="0" r="21" class="phago-i"/></g>
+      <circle class="lyso" cx="60" cy="140" r="8"/>
+      ${Array.from({ length: 8 }, (_, i) => `<circle class="reborn" cx="110" cy="90" r="2.6" style="animation-delay:${i * 0.08}s;--tx:${Math.cos(i / 8 * 6.283) * 50}px;--ty:${Math.sin(i / 8 * 6.283) * 34}px"/>`).join('')}`;
+  }
+  const label = { digest: 'Nährstoffe strömen in die Zelle', refuel: 'Speicher werden aufgefüllt', glycogen: 'Glykogen wird zu Zucker abgebaut', fat: 'Fett wird zu Energie und Ketonkörpern', deep: 'Beschädigte Teile werden eingesammelt', recycle: 'Beschädigte Teile werden verwertet' }[key];
+  return `<svg class="cellscene s-${key}" viewBox="0 0 320 184" role="img" aria-label="Animation: ${label}">${cell}${inner}</svg><p class="scenecap">${label}</p>`;
+}
+function hexPts(cx, cy, r) { return Array.from({ length: 6 }, (_, i) => { const a = i / 6 * 6.283 + 0.5236; return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`; }).join(' '); }
+
+let bodyPick = null; // vom Nutzer angetippte Phase (null = aktuelle)
+function bodyCard(snap) {
+  if (snap.mode === 'eating') {
+    const last = state.sessions[state.sessions.length - 1];
+    return `<div class="card bodycard">
+      <div class="row between"><h2>Was gerade im Körper passiert</h2>${EV_DOTS(3)}</div>
+      ${cellScene('refuel')}
+      <p><b>Flut: Dein Körper tankt auf.</b> Nach dem Essen steigen Blutzucker und Insulin, und die Speicher (Glykogen) werden wieder gefüllt.</p>
+      ${last ? `<p class="small muted">Letzte Ebbe: ${hoursText(sFasted(last))} · ${sGoal(last) ? `<span class="ok">geschafft, +${pearlsFor(last)} Perlen</span>` : 'früher beendet'}</p>` : ''}
+    </div>`;
+  }
+  const h = (now - snap.start) / 3600000, cur = bodyStageIndex(h);
+  const sel = bodyPick ?? cur, st = BODY[sel];
+  const maxH = 24, pct = Math.min(1, h / maxH) * 100;
+  return `<div class="card bodycard">
+    <div class="row between"><h2>Was gerade im Körper passiert</h2><span class="pill glow">seit ${hoursText(Math.floor(h * 60))}</span></div>
+    <div class="bodyline" aria-hidden="true"><div class="bodyfill" style="width:${pct}%"></div>${[4, 12, 16].map(x => `<i style="left:${x / maxH * 100}%"></i>`).join('')}<span class="bodynow" style="left:${pct}%"></span></div>
+    <div class="stagechips" role="tablist" aria-label="Phasen">${BODY.map((s, i) => `<button type="button" role="tab" class="stagechip${i < cur ? ' done' : ''}${i === cur ? ' cur' : ''}" data-stage="${i}" aria-selected="${i === sel}">${i < cur ? '✓ ' : ''}${s.title}<small>${s.short}</small></button>`).join('')}</div>
+    <div class="stagebody" key="${st.key}">
+      ${cellScene(st.key)}
+      <div class="row between"><h3>${st.title}${sel === cur ? ' <span class="pill moon">jetzt</span>' : sel > cur ? ` <span class="pill">in ${hoursText(Math.max(0, Math.round((st.from - h) * 60)))}</span>` : ' <span class="pill glow">erreicht</span>'}</h3></div>
+      <p>${st.what}</p>
+      <p class="small muted">Beleglage: ${EV_DOTS(st.evLevel)} ${st.ev}. Richtwerte, individuell verschieden. Keine medizinische Beratung.</p>
+    </div>
+  </div>`;
+}
+
+// ================= Belohnungen: Perlen, Ränge, Abzeichen =================
+const RANKS = [
+  { at: 0, name: 'Strandläufer' }, { at: 40, name: 'Muschelsammler' }, { at: 120, name: 'Wellenreiter' },
+  { at: 280, name: 'Riffkundiger' }, { at: 520, name: 'Tiefseetaucher' }, { at: 900, name: 'Mondgezeiten-Kenner' },
+  { at: 1500, name: 'Gezeitenmeister' },
+];
+const pearlsFor = s => Math.floor(sFasted(s) / 60) + (sGoal(s) ? 5 : 0);
+function bestRun(sessions) {
+  const byDay = new Map();
+  for (const s of sessions) { const k = startOfDay(new Date(s.plannedEnd)).getTime(); (byDay.get(k) || byDay.set(k, []).get(k)).push(s); }
+  let run = 0, best = 0;
+  for (const k of [...byDay.keys()].sort((a, b) => a - b)) { if (byDay.get(k).every(sGoal)) { run++; best = Math.max(best, run); } else run = 0; }
+  return best;
+}
+const BADGES = [
+  { id: 'first', name: 'Erste Ebbe', desc: 'Erste Fastenphase geschafft', icon: 'moon', test: c => c.goals >= 1 },
+  { id: 's3', name: 'Dreier-Welle', desc: '3 Tage in Folge geschafft', icon: 'wave', test: c => c.best >= 3 },
+  { id: 's7', name: 'Wochen-Gezeit', desc: '7 Tage in Folge geschafft', icon: 'wave', test: c => c.best >= 7 },
+  { id: 's14', name: 'Springflut', desc: '14 Tage in Folge geschafft', icon: 'wave', test: c => c.best >= 14 },
+  { id: 's30', name: 'Mondzyklus', desc: '30 Tage in Folge geschafft', icon: 'moon', test: c => c.best >= 30 },
+  { id: 'h50', name: '50 Stunden', desc: '50 Stunden gefastet', icon: 'pearl', test: c => c.hours >= 50 },
+  { id: 'h150', name: '150 Stunden', desc: '150 Stunden gefastet', icon: 'pearl', test: c => c.hours >= 150 },
+  { id: 'h500', name: '500 Stunden', desc: '500 Stunden gefastet', icon: 'pearl', test: c => c.hours >= 500 },
+  { id: 'night', name: 'Nachtschwimmer', desc: 'Nach einem Fenster über Mitternacht weitergefastet', icon: 'star', test: c => c.night },
+  { id: 'deep', name: 'Tiefseetaucher', desc: 'Eine Fastenphase von 20 h oder länger', icon: 'shell', test: c => c.longest >= 20 },
+  { id: 'comeback', name: 'Comeback', desc: 'Nach einer verpassten Phase wieder geschafft', icon: 'star', test: c => c.comeback },
+  { id: 'scale', name: 'Waagemutig', desc: '5 Gewichtseinträge', icon: 'shell', test: c => c.weights >= 5 },
+];
+const BADGE_ICON = {
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  wave: '<path d="M2 15c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1M2 9c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1"/>',
+  pearl: '<circle cx="12" cy="12" r="7"/><circle cx="9.5" cy="9.5" r="2"/>',
+  star: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  shell: '<path d="M12 20c-5 0-8-4-8-8a8 8 0 0 1 16 0c0 4-3 8-8 8zM12 20V6M8 19l2-12M16 19l-2-12"/>',
+};
+function rewards() {
+  const ss = state.sessions;
+  let pearls = 0, prevMiss = false, comeback = false, night = false, longest = 0, hours = 0, goals = 0;
+  for (const s of ss) {
+    pearls += pearlsFor(s); hours += sFasted(s) / 60; longest = Math.max(longest, sFasted(s) / 60);
+    if (sGoal(s)) { goals++; if (prevMiss) comeback = true; prevMiss = false; const h0 = new Date(s.start).getHours(); if (h0 >= 0 && h0 < 6) night = true; }
+    else prevMiss = true;
+  }
+  const c = { goals, best: bestRun(ss), hours, night, longest, comeback, weights: state.weights.length };
+  let r = 0; while (r + 1 < RANKS.length && pearls >= RANKS[r + 1].at) r++;
+  const next = RANKS[r + 1];
+  return {
+    pearls, rank: r, rankName: RANKS[r].name, next,
+    toNext: next ? next.at - pearls : 0,
+    progress: next ? (pearls - RANKS[r].at) / (next.at - RANKS[r].at) : 1,
+    badges: BADGES.map(b => ({ ...b, on: !!b.test(c) })),
+  };
+}
+function badgeSvg(icon) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${BADGE_ICON[icon]}</svg>`; }
+function rewardsCard(rw) {
+  return `<div class="card rewardcard">
+    <div class="row between"><div><p class="eyebrow">Dein Rang</p><h2>${rw.rankName}</h2></div><div class="pearlbig"><span class="pearl"></span><b data-count="${rw.pearls}">0</b></div></div>
+    <div class="xpbar"><i style="--w:${Math.round(rw.progress * 100)}%"></i></div>
+    <p class="small muted">${rw.next ? `Noch ${rw.toNext} Perlen bis <b>${rw.next.name}</b>.` : 'Höchster Rang erreicht. Respekt!'} Du bekommst 1 Perle pro gefasteter Stunde und 5 extra für jede geschaffte Phase.</p>
+    <h3>Abzeichen <span class="muted small">${rw.badges.filter(b => b.on).length} von ${rw.badges.length}</span></h3>
+    <div class="badges">${rw.badges.map((b, i) => `<div class="badge${b.on ? ' on' : ''}" style="animation-delay:${i * 40}ms" title="${b.desc}"><span class="bicon">${badgeSvg(b.icon)}</span><b>${b.name}</b><small>${b.on ? 'freigeschaltet' : b.desc}</small></div>`).join('')}</div>
+  </div>`;
+}
+
+// Neu freigeschaltete Abzeichen und Rangaufstiege einmalig feiern
+const SEEN_KEY = 'fastflow-seen-rewards';
+let seenRewards = null;
+function loadSeen() { if (seenRewards) return seenRewards; try { seenRewards = JSON.parse(localStorage.getItem(SEEN_KEY)) || null; } catch (e) { seenRewards = null; } return seenRewards; }
+function saveSeen() { try { localStorage.setItem(SEEN_KEY, JSON.stringify(seenRewards)); } catch (e) {} }
+function checkUnlocks() {
+  if (!state.profile) return;
+  const rw = rewards(), on = rw.badges.filter(b => b.on).map(b => b.id);
+  const seen = loadSeen();
+  if (!seen) { seenRewards = { badges: on, rank: rw.rank }; saveSeen(); return; }
+  const fresh = rw.badges.filter(b => b.on && !seen.badges.includes(b.id));
+  const rankUp = rw.rank > seen.rank;
+  seenRewards = { badges: on, rank: rw.rank }; saveSeen();
+  if (fresh.length) showUnlock(`Neues Abzeichen${fresh.length > 1 ? ` (+${fresh.length - 1} weitere)` : ''}`, fresh[0].name, fresh[0].desc, fresh[0].icon);
+  else if (rankUp) showUnlock('Neuer Rang', rw.rankName, `Du hast ${rw.pearls} Perlen gesammelt.`, 'pearl');
+}
+function showUnlock(kicker, title, desc, icon) {
+  const o = document.createElement('div'); o.className = 'unlock'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', kicker);
+  o.innerHTML = `<div class="unlockcard"><div class="rays"></div><span class="bicon big">${badgeSvg(icon)}</span><p class="eyebrow">${kicker}</p><h2>${esc(title)}</h2><p class="muted">${esc(desc)}</p><button type="button" class="primary">Weiter</button></div>`;
+  document.body.appendChild(o); celebrate();
+  floSay(`Wow, ${state.profile.name}! „${title}“ – das schreib ich mir mit Sternchen auf!`, { happy: true });
+  const close = () => { o.classList.add('out'); setTimeout(() => o.remove(), 300); };
+  o.querySelector('button').addEventListener('click', close); o.addEventListener('click', e => { if (e.target === o) close(); });
+  o.querySelector('button').focus();
+}
+function pearlBurst(n) {
+  if (!n) return;
+  const p = document.createElement('div'); p.className = 'pearlburst'; p.textContent = `+${n} Perlen`;
+  document.body.appendChild(p); setTimeout(() => p.remove(), 1900);
+}
+// Live: Phasenwechsel während des Fastens feiern
+let lastStageKey = null;
+function watchStage() {
+  const snap = resolve(new Date(), state.plan);
+  const key = snap && snap.mode === 'fasting' ? BODY[bodyStageIndex((Date.now() - snap.start) / 3600000)].key : 'eat';
+  if (lastStageKey && key !== lastStageKey && key !== 'eat' && !simulated) {
+    const st = BODY.find(s => s.key === key);
+    toast(`Neue Phase: ${st.title}`); celebrate(); bodyPick = null;
+    floSay(`Meilenstein! Du bist jetzt in der Phase „${st.title}“. ${st.what.split('. ')[0]}.`, { happy: true });
+    if (currentView() === 'heute') renderView(false);
+  }
+  lastStageKey = key;
+}
+
+// ================= Ansichten =================
+let now = new Date(); now.setSeconds(0, 0);
+let simulated = false;
+let analysePeriod = 'week';
+const VIEWS = ['heute', 'plan', 'analyse', 'gewicht', 'profil'];
+const currentView = () => { const t = location.hash.slice(1); return VIEWS.includes(t) ? t : 'heute'; };
+const greet = () => { const h = new Date().getHours(); return h < 5 ? 'Gute Nacht' : h < 11 ? 'Guten Morgen' : h < 17 ? 'Hallo' : h < 22 ? 'Guten Abend' : 'Gute Nacht'; };
+
+let ringFromZero = true;
+function viewHeute() {
+  const snap = resolve(now, state.plan), name = esc(state.profile?.name || '');
+  const head = `<div class="top"><div><p class="eyebrow">FastFlow · Gezeiten</p><h1>${greet()}, ${name}</h1></div><div class="date">${FULL[dayIdx(now)]}<br>${ddmm(now)}${simulated ? '<br>Testzeit ' + hhmm(now) : ''}</div></div>`;
+  if (!snap) return head + `<div class="card"><h2>Kein aktiver Tag</h2><p class="muted">Aktiviere im Plan mindestens einen Wochentag.</p><a class="btn" href="#plan">Zum Plan</a></div>`;
+  const st = streak(state.sessions, new Date(), state.jokers);
+  const wk = report('week', state.sessions, new Date(), state.jokers);
+  const iv = intervals(now, state.plan).filter(x => x.start > now)[0];
+  const fasting = snap.mode === 'fasting';
+  const nextLabel = fasting ? 'Nächste Flut' : 'Nächste Ebbe';
+  const nextAt = fasting ? snap.end : snap.end;
+  const early = fasting && state.sessions.find(s => s.start === snap.start.getTime() && s.actualEnd);
+  return head + `
+  <div class="card ${fasting ? 'fasting' : 'eating'}" id="ringCard">
+    <div class="ringwrap">
+      <svg class="ring" viewBox="0 0 300 300" aria-hidden="true">
+        <defs><linearGradient id="ringG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${fasting ? '#5fe3d0' : '#f6ecc8'}"/><stop offset="1" stop-color="${fasting ? '#7fb6ff' : '#ffb98f'}"/></linearGradient></defs>
+        ${Array.from({ length: 24 }, (_, i) => { const a = i / 24 * 6.283 - 1.5708, r1 = 132, r2 = i % 6 ? 136 : 140; return `<line class="tick" x1="${150 + r1 * Math.cos(a)}" y1="${150 + r1 * Math.sin(a)}" x2="${150 + r2 * Math.cos(a)}" y2="${150 + r2 * Math.sin(a)}"/>`; }).join('')}
+        <circle class="track" cx="150" cy="150" r="115"/>
+        <circle class="prog" id="ringProg" cx="150" cy="150" r="115" stroke="url(#ringG)" stroke-dasharray="722.6" stroke-dashoffset="${ringFromZero ? 722.6 : (722.6 * (1 - Math.min(1, Math.max(0, (now - snap.start) / (snap.end - snap.start))))).toFixed(1)}" transform="rotate(-90 150 150)"/>
+        <circle class="bead" id="ringBead" r="9" cx="150" cy="35"/>
+      </svg>
+      <div class="ringcenter">
+        <span class="mode">${fasting ? 'Ebbe · Fasten' : 'Flut · Essen'}</span>
+        <span class="time" id="ringTime">${clock(snap.end - now)}</span>
+        <span class="until">${fasting ? 'bis zur Flut' : 'bis zur Ebbe'} · ${dayWord(snap.end)} ${hhmm(snap.end)} Uhr</span>
+      </div>
+    </div>
+    ${fasting ? `<p class="anticip"><span class="pearl"></span>Hältst du bis ${hhmm(snap.end)} Uhr durch: +${Math.floor((snap.end - snap.start) / 3600000) + 5} Perlen</p>` : `<p style="text-align:center"><b>Dein Essensfenster ist offen</b><br><span class="muted small">${esc(snap.sub)}</span></p>`}
+    ${fasting ? (early
+      ? `<p class="small" style="text-align:center">Heute vorzeitig beendet um ${hhmm(new Date(early.actualEnd))} Uhr. Ist notiert.</p>`
+      : `<div class="row" style="justify-content:center"><button type="button" id="endEarly">Ich habe schon gegessen</button></div>
+         <div class="row" id="endConfirm" style="justify-content:center" hidden><span class="small">Aktuelle Fastenphase jetzt beenden?</span><button type="button" class="primary" id="endYes">Ja, beenden</button><button type="button" class="ghost" id="endNo">Abbrechen</button></div>`) : ''}
+  </div>
+  <div class="tiles">
+    <div class="tile"><span>Serie</span><b data-count="${st.days}" data-suffix="${st.days === 1 ? ' Tag' : ' Tage'}">0</b></div>
+    <div class="tile"><span>Perlen</span><b><span class="pearl"></span><span data-count="${rewards().pearls}">0</span></b></div>
+    <div class="tile"><span>${nextLabel}</span><b class="mono" style="font-size:1.05rem">${DAYS[dayIdx(nextAt)]} ${hhmm(nextAt)}</b></div>
+  </div>
+  ${bodyCard(snap)}
+  <div class="card">
+    <div class="row between"><h2>Deine Gezeiten-Woche</h2><span class="pill moon">jetzt</span></div>
+    <div class="week">${weekRows()}</div>
+    <div class="axis"><span></span><div><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>
+    <div class="legend"><span><i style="background:linear-gradient(90deg,#5fe3d0,#4fb4e8)"></i>Essen (Flut)</span><span><i style="background:rgba(127,182,255,.25)"></i>Fasten (Ebbe)</span></div>
+  </div>`;
+}
+function weekRows() {
+  const rows = [];
+  for (let i = 0; i < 7; i++) {
+    const day = addDays(now, i - dayIdx(now)), next = addDays(day, 1), span = next - day;
+    const segs = intervals(day, state.plan).map(iv => {
+      const s = Math.max(iv.start, day), e = Math.min(iv.end, next);
+      if (e <= s) return '';
+      return `<div class="seg${iv.start < day ? ' cont' : ''}" style="left:${(s - day) / span * 100}%;width:${(e - s) / span * 100}%;animation-delay:${i * 60}ms"></div>`;
+    }).join('');
+    const today = day.toDateString() === now.toDateString();
+    rows.push(`<div class="wrow${today ? ' today' : ''}"><span class="d">${DAYS[i]}</span><div class="track">${segs}${today ? `<div class="nowmark" style="left:${(now - day) / span * 100}%"></div>` : ''}</div></div>`);
+  }
+  return rows.join('');
+}
+function updateRing() {
+  const snap = resolve(now, state.plan), prog = $('ringProg'); if (!snap || !prog) return;
+  const p = Math.min(1, Math.max(0, (now - snap.start) / (snap.end - snap.start)));
+  prog.style.strokeDashoffset = String(722.6 * (1 - p));
+  const a = p * 6.283 - 1.5708; $('ringBead').setAttribute('cx', 150 + 115 * Math.cos(a)); $('ringBead').setAttribute('cy', 150 + 115 * Math.sin(a));
+  $('ringTime').textContent = clock(snap.end - now);
+}
+
+function viewPlan() {
+  const hints = validate(state.plan);
+  return `<div class="top"><div><p class="eyebrow">Dein Rhythmus</p><h1>Plan</h1></div></div>
+  <div class="stack">
+    <div class="card">
+      <h3>Vorlagen</h3>
+      <div class="row">${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="chip" data-preset="${k}">${p.title}</button>`).join('')}</div>
+      <p class="muted small">Jeder Tag lässt sich danach einzeln anpassen. Liegt das Ende vor dem Start, läuft das Fenster über Mitternacht.</p>
+    </div>
+    ${hints.length ? `<div class="stack">${hints.map(h => `<div class="hint ${h.sev}">${h.sev === 'warning' ? '<b>Achtung:</b> ' : ''}${esc(h.msg)}</div>`).join('')}</div>` : ''}
+    ${state.plan.map((r, i) => {
+      const f = fastingAfter(state.plan, i);
+      return `<div class="day${r.enabled ? '' : ' off'}" style="animation:viewIn .4s ${i * 50}ms both">
+        <div class="row between"><h3>${FULL[i]}</h3>
+          <label class="switch" title="${FULL[i]} an/aus"><input type="checkbox" id="en${i}" data-i="${i}" data-k="enabled" ${r.enabled ? 'checked' : ''} aria-label="${FULL[i]} aktiv"><span></span></label></div>
+        ${r.enabled ? `<div class="times">
+          <label class="field">Essen ab<input type="time" id="st${i}" data-i="${i}" data-k="start" value="${fmtM(R.start(r))}"></label>
+          <label class="field">Essen bis<input type="time" id="et${i}" data-i="${i}" data-k="end" value="${fmtM(R.end(r))}"></label></div>
+        <div class="meta"><span class="pill glow">${badge(state.plan, i)} Fasten:Essen</span><span class="pill">Fenster ${hoursText(R.dur(r))}</span>
+          ${R.crosses(r) ? `<span class="pill moon">über Mitternacht bis ${DAYS[(i + 1) % 7]} ${fmtM(R.end(r))}</span>` : ''}
+          ${f !== null ? `<span class="pill">danach ${hoursText(f)} Ebbe</span>` : ''}</div>`
+        : `<p class="muted small">Kein Essensfenster – an diesem Tag ist durchgehend Ebbe.</p>`}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function barChart(bs, byMonth) {
+  const W = 400, H = 230, Lp = 34, Rp = 8, T = 12, B = 28;
+  const max = Math.max(6, ...bs.map(b => Math.max(b.f, b.t)));
+  const top = Math.ceil(max / 6) * 6, y = v => T + (H - T - B) * (1 - v / top), bw = (W - Lp - Rp) / bs.length;
+  let g = '', bars = '', path = '';
+  for (const v of [0, top / 2, top]) g += `<line class="grid" x1="${Lp}" x2="${W - Rp}" y1="${y(v)}" y2="${y(v)}"/><text x="${Lp - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  const every = Math.ceil(bs.length / 7);
+  bs.forEach((b, i) => {
+    const x = Lp + i * bw;
+    if (b.f > 0) bars += `<rect class="barr" style="animation-delay:${i * 25}ms" x="${x + bw * 0.16}" y="${y(b.f)}" width="${bw * 0.68}" height="${y(0) - y(b.f)}" rx="${Math.min(6, bw * 0.2)}"><title>${b.f.toFixed(1)} h von ${b.t.toFixed(1)} h</title></rect>`;
+    path += `${i ? 'L' : 'M'}${x} ${y(b.t)} L${x + bw} ${y(b.t)} `;
+    if (i % every === 0) g += `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${byMonth ? ['J','F','M','A','M','J','J','A','S','O','N','D'][b.start.getMonth()] : bs.length <= 7 ? DAYS[dayIdx(b.start)] : b.start.getDate()}</text>`;
+  });
+  return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gefastete Stunden mit Soll-Linie"><defs><linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fe3d0"/><stop offset="1" stop-color="#2a7f9e"/></linearGradient></defs>${g}${bars}<path class="target" d="${path}"/></svg></div>
+  <div class="legend"><span><i style="background:linear-gradient(#5fe3d0,#2a7f9e)"></i>Gefastet (Stunden)</span><span><i style="background:#f6ecc8"></i>Soll laut Plan</span></div>`;
+}
+function viewAnalyse() {
+  const real = new Date();
+  const seg = `<div class="row">${[['week', 'Woche'], ['month', 'Monat'], ['year', 'Jahr']].map(([k, l]) => `<button type="button" class="chip" data-period="${k}" aria-pressed="${analysePeriod === k}">${l}</button>`).join('')}</div>`;
+  let body;
+  if (!state.sessions.length) body = `<div class="card"><h2>Noch keine Daten</h2><p class="muted">Sobald deine erste Fastenphase vorbei ist, erscheint sie hier. Zum Ausprobieren kannst du Beispieldaten laden.</p></div>`;
+  else {
+    const r = report(analysePeriod, state.sessions, real, state.jokers), rate = r.n ? Math.round(r.ok / r.n * 100) : 0;
+    body = `<div class="kpis">
+      <div class="tile"><span>Gefastet</span><b data-count="${Math.round(r.fasted)}" data-suffix=" h">0 h</b><small>Soll ${Math.round(r.target)} h</small></div>
+      <div class="tile"><span>Geschafft</span><b data-count="${rate}" data-suffix=" %">0 %</b><small>${r.ok} von ${r.n} Phasen</small></div>
+      <div class="tile"><span>Serie</span><b data-count="${r.streak.days}" data-suffix=" Tage">0 Tage</b><small>${r.streak.left} von ${state.jokers} Jokern übrig</small></div>
+      <div class="tile"><span>Perlen gesamt</span><b><span class="pearl"></span><span data-count="${rewards().pearls}">0</span></b><small>Rang: ${rewards().rankName}</small></div>
+    </div>
+    <div class="card"><h2>Fastenstunden</h2>${barChart(buckets(analysePeriod, state.sessions, real), analysePeriod === 'year')}
+      <p class="muted small">Über 16 h hinaus gefastet: ${hoursText(Math.round(r.long * 60))}. Ein verfehlter Tag verbraucht einen Joker, die Serie läuft dann weiter.</p></div>`;
+  }
+  body += rewardsCard(rewards());
+  const recent = state.sessions.slice(-8).reverse();
+  return `<div class="top"><div><p class="eyebrow">Deine Fasten-Analysen</p><h1>Analyse</h1></div></div>
+  <div class="stack">${seg}${body}
+    <div class="card"><h2>Letzte Fastenphasen</h2>
+      <ul class="sess">${recent.length ? recent.map((s, k) => {
+        const st = new Date(s.start), pe = new Date(s.plannedEnd), ok = sGoal(s);
+        return `<li style="animation-delay:${k * 40}ms"><div class="row between"><span class="mono">${DAYS[dayIdx(st)]} ${hhmm(st)} → ${DAYS[dayIdx(pe)]} ${hhmm(pe)}</span><span class="${ok ? 'ok' : 'miss'}">${ok ? 'geschafft' : 'nach ' + hoursText(sFasted(s))}</span></div>
+          <details${s.actualEnd ? ' open' : ''}><summary>${s.actualEnd ? 'Ende ändern' : 'Früher gegessen?'}</summary>
+          <div class="row"><input type="datetime-local" id="ae_${s.id}" aria-label="Tatsächlich gegessen um" value="${toLocalInput(new Date(sEnd(s)))}" min="${toLocalInput(st)}" max="${toLocalInput(pe)}">
+          <button type="button" data-act="early" data-id="${s.id}">Speichern</button>${s.actualEnd ? `<button type="button" class="link" data-act="reset" data-id="${s.id}">Zurücksetzen</button>` : ''}</div></details></li>`;
+      }).join('') : '<li class="muted">Noch keine Einträge.</li>'}</ul>
+      <div class="row"><button type="button" id="demoBtn">Beispieldaten laden</button><button type="button" class="danger" id="clearBtn">Verlauf löschen</button></div>
+      <div class="row" id="clearConfirm" hidden><span class="small">Alle Fastenphasen und Gewichte löschen?</span><button type="button" class="danger" id="clearYes">Ja, löschen</button><button type="button" class="ghost" id="clearNo">Abbrechen</button></div>
+    </div></div>`;
+}
+
+function lineChart(pts) {
+  const W = 400, H = 220, Lp = 44, Rp = 10, T = 12, B = 28;
+  const vals = pts.flatMap(p => [p.kg, p.trend]);
+  const lo = Math.floor(Math.min(...vals) - 0.5), hi = Math.ceil(Math.max(...vals) + 0.5);
+  const t0 = pts[0].date.getTime(), t1 = Math.max(pts[pts.length - 1].date.getTime(), t0 + 86400000);
+  const x = t => Lp + (W - Lp - Rp) * (t - t0) / (t1 - t0), y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  let g = '';
+  for (const v of [lo, (lo + hi) / 2, hi]) g += `<line class="grid" x1="${Lp}" x2="${W - Rp}" y1="${y(v)}" y2="${y(v)}"/><text x="${Lp - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(1)}</text>`;
+  g += `<text x="${Lp}" y="${H - 6}">${ddmm(pts[0].date)}</text><text x="${W - Rp}" y="${H - 6}" text-anchor="end">${ddmm(pts[pts.length - 1].date)}</text>`;
+  const dots = pts.map(p => `<circle class="pt" cx="${x(p.date.getTime())}" cy="${y(p.kg)}" r="4"><title>${ddmm(p.date)}: ${p.kg.toFixed(1)} kg</title></circle>`).join('');
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.date.getTime())} ${y(p.trend)}`).join(' ');
+  return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gewicht mit Trendlinie">${g}${dots}<path class="trend" pathLength="1" d="${line}"/></svg></div>
+  <div class="legend"><span><i style="background:#7fb6ff"></i>Messung</span><span><i style="background:#5fe3d0"></i>Trend</span></div>`;
+}
+function viewGewicht() {
+  const pts = emaTrend(state.weights);
+  let body = '';
+  if (pts.length) {
+    const last = pts[pts.length - 1], d = last.trend - pts[0].trend;
+    body = `<div class="kpis">
+      <div class="tile"><span>Trend</span><b data-count="${last.trend.toFixed(1)}" data-dec="1" data-suffix=" kg">0 kg</b><small>${d <= 0 ? '−' : '+'}${Math.abs(d).toFixed(1)} kg seit ${ddmm(pts[0].date)}</small></div>
+      <div class="tile"><span>Zuletzt</span><b data-count="${last.kg.toFixed(1)}" data-dec="1" data-suffix=" kg">0 kg</b><small>${DAYS[dayIdx(last.date)]} ${ddmm(last.date)}</small></div></div>
+    ${pts.length > 1 ? `<div class="card"><h2>Verlauf</h2>${lineChart(pts)}</div>` : ''}
+    <div class="card"><h3>Letzte Einträge</h3><ul class="sess">${state.weights.slice(-6).reverse().map((w, k) => `<li style="animation-delay:${k * 40}ms"><div class="row between"><span class="mono">${ddmm(new Date(w.date))} · ${Number(w.kg).toFixed(1)} kg</span><button type="button" class="link" data-act="delw" data-id="${w.id}">Löschen</button></div></li>`).join('')}</ul></div>`;
+  }
+  return `<div class="top"><div><p class="eyebrow">Dein Trend</p><h1>Gewicht</h1></div></div>
+  <div class="stack"><div class="card">
+    <form class="stack" id="weightForm">
+      <div class="row"><label class="field" style="flex:1 1 140px">Datum<input type="date" id="wDate" value="${toDateInput(new Date())}" required></label>
+      <label class="field" style="flex:1 1 120px">Kilogramm<input type="number" id="wKg" min="30" max="350" step="0.1" placeholder="z. B. 78,4" required></label></div>
+      <button type="submit" class="primary">Gewicht eintragen</button>
+    </form>
+    <p class="muted small">Die Trendlinie glättet Tagesschwankungen durch Wasser und Salz. Ein Eintrag pro Tag, ein neuer ersetzt den alten.</p>
+  </div>${body}</div>`;
+}
+
+function viewProfil() {
+  const lead = profilLead;
+  const rem = plannedReminders(new Date(), state.plan, lead, 6);
+  return `<div class="top"><div><p class="eyebrow">Du & FastFlow</p><h1>Profil</h1></div></div>
+  <div class="stack">
+    <div class="card"><h2>Name</h2>
+      <div class="row"><input type="text" id="nameInput" maxlength="30" value="${esc(state.profile?.name || '')}" aria-label="Dein Name" style="flex:1 1 180px"><button type="button" id="saveName">Speichern</button></div></div>
+    <div class="card"><h2>Erinnerungen</h2>
+      <p class="muted small">So würde dich die iOS-App erinnern. Diese Webseite selbst kann keine Mitteilungen senden.</p>
+      <label class="field">Vorlauf vor Fensterende (Minuten)<input type="number" id="leadInput" min="5" max="120" step="5" value="${lead}" style="width:8em"></label>
+      <ul class="sess">${rem.length ? rem.map((r, k) => `<li style="animation-delay:${k * 40}ms"><span class="mono muted">${DAYS[dayIdx(r.at)]} ${ddmm(r.at)} · ${hhmm(r.at)}</span><b>${r.title}</b><span class="muted small">${r.body}</span></li>`).join('') : '<li class="muted">Keine Erinnerungen geplant.</li>'}</ul></div>
+    <div class="card"><h2>Serie & Joker</h2>
+      <label class="field">Joker (verfehlte Tage, die die Serie nicht abreißen lassen)<input type="number" id="jokerInput" min="0" max="10" step="1" value="${state.jokers}" style="width:8em"></label></div>
+    <div class="card"><h2>Testmodus</h2>
+      <p class="muted small">Springe in der Heute-Ansicht zu einer anderen Uhrzeit, um deinen Plan auszuprobieren.</p>
+      <div class="row"><input type="datetime-local" id="simInput" value="${toLocalInput(now)}" aria-label="Testzeit"><button type="button" data-step="-60">−1 h</button><button type="button" data-step="60">+1 h</button><button type="button" data-step="1440">+1 Tag</button><button type="button" id="simNow">Echte Zeit</button></div>
+      ${simulated ? `<p class="small">Testzeit aktiv: ${FULL[dayIdx(now)]} ${ddmm(now)} ${hhmm(now)} Uhr</p>` : ''}</div>
+    <div class="card"><h2>Gesundheit</h2>
+      <p class="small">FastFlow ist nur für Erwachsene und ersetzt keine ärztliche Beratung. Bei Schwangerschaft, Stillzeit, Essstörungen (auch früher), Diabetes oder regelmäßigen Medikamenten bitte vorher ärztlichen Rat einholen. Bei Schwindel, Unwohlsein oder starkem Hunger: Fasten beenden und etwas essen.</p></div>
+    <div class="card"><h2>Speicher</h2><p class="small muted">${store.mode === 'db' ? 'Deine Daten liegen privat in deinem claude.ai-Konto.' : 'Deine Daten liegen nur in diesem Browser.'}${store.notice ? ' ' + esc(store.notice) : ''}</p>
+      <button type="button" class="danger" id="resetAll">Alles zurücksetzen</button>
+      <div class="row" id="resetConfirm" hidden><span class="small">Profil, Plan, Verlauf und Gewichte löschen und neu einrichten?</span><button type="button" class="danger" id="resetYes">Ja, alles löschen</button><button type="button" class="ghost" id="resetNo">Abbrechen</button></div></div>
+  </div>`;
+}
+let profilLead = 30;
+
+// ================= Onboarding =================
+const ob = { step: 0, name: '', adult: false, health: false, preset: 'p16', blocked: false };
+function renderOnboarding() {
+  const p = $('obPanel');
+  const dots = `<div class="dots" aria-hidden="true">${[0, 1, 2, 3, 4].map(i => `<i class="${i === ob.step ? 'on' : ''}"></i>`).join('')}</div>`;
+  let html = '';
+  if (ob.blocked) {
+    html = `<div class="hero"><div class="otterbtn" data-otter></div><h1>FastFlow ist nur für Erwachsene</h1></div>
+      <p class="muted" style="text-align:center">Fasten ist für Kinder und Jugendliche nicht geeignet, weil der Körper noch wächst. Wenn du Fragen zur Ernährung hast, sprich mit deinen Eltern oder einer Ärztin.</p>
+      <button type="button" class="ghost" id="obBack">Zurück</button>`;
+  } else if (ob.step === 0) {
+    html = `<div class="hero"><div class="otterbtn" data-otter></div><p class="eyebrow">Willkommen bei FastFlow</p><h1>Hallo! Ich bin Flo.</h1></div>
+      <p style="text-align:center">Ich bin ein neugieriger Seeotter und lerne gerade alles über Intervallfasten. Bei mir heißt Fasten <b>Ebbe</b> und Essen <b>Flut</b>. Ich begleite dich durch deine Gezeiten.</p>
+      ${dots}<button type="button" class="primary" id="obNext">Los geht's</button>`;
+  } else if (ob.step === 1) {
+    html = `<div class="hero"><div class="otterbtn" data-otter></div><h1>Wie darf ich dich nennen?</h1></div>
+      <label class="field">Dein Vorname oder Spitzname<input type="text" id="obName" maxlength="30" autocomplete="given-name" value="${esc(ob.name)}" placeholder="z. B. Alex"></label>
+      ${dots}<div class="row between"><button type="button" class="ghost" id="obPrev">Zurück</button><button type="button" class="primary" id="obNext" ${ob.name.trim() ? '' : 'disabled'}>Weiter</button></div>`;
+  } else if (ob.step === 2) {
+    html = `<div class="hero"><h1>Kurz und wichtig, ${esc(ob.name.trim())}</h1></div>
+      <label class="check"><input type="checkbox" id="obAdult" ${ob.adult ? 'checked' : ''}><span>Ich bin <b>mindestens 18 Jahre alt</b>.</span></label>
+      <label class="check"><input type="checkbox" id="obHealth" ${ob.health ? 'checked' : ''}><span>Ich weiß: FastFlow ersetzt keine ärztliche Beratung. Bei Schwangerschaft, Stillzeit, Essstörungen (auch früher), Diabetes oder regelmäßigen Medikamenten spreche ich vorher mit einer Ärztin oder einem Arzt.</span></label>
+      ${dots}<div class="row between"><button type="button" class="ghost" id="obPrev">Zurück</button><button type="button" class="primary" id="obNext" ${ob.adult && ob.health ? '' : 'disabled'}>Weiter</button></div>
+      <button type="button" class="link" id="obMinor">Ich bin jünger als 18</button>`;
+  } else if (ob.step === 3) {
+    html = `<div class="hero"><h1>Welcher Rhythmus passt zu dir?</h1><p class="muted">Du kannst später jeden Tag einzeln ändern, auch Fenster über Mitternacht.</p></div>
+      <div class="choices">${Object.entries(PRESETS).map(([k, pr]) => `<button type="button" class="choice" data-choice="${k}" aria-pressed="${ob.preset === k}"><b>${pr.title}</b><span>${pr.sub}</span></button>`).join('')}</div>
+      ${dots}<div class="row between"><button type="button" class="ghost" id="obPrev">Zurück</button><button type="button" class="primary" id="obNext">Weiter</button></div>`;
+  } else {
+    html = `<div class="hero"><div class="otterbtn" data-otter></div><h1>Perfekt, ${esc(ob.name.trim())}!</h1></div>
+      <p style="text-align:center">Dein Rhythmus <b>${PRESETS[ob.preset].title}</b> steht. Ich hab ihn in mein Notizbuch geschrieben und zeige dir jetzt deine erste Gezeit.</p>
+      ${dots}<button type="button" class="primary" id="obFinish">FastFlow starten</button>`;
+  }
+  p.innerHTML = html; p.classList.remove('pop'); void p.offsetWidth; p.classList.add('pop');
+  mountOtters();
+  const nameEl = $('obName'); if (nameEl) { nameEl.focus(); nameEl.addEventListener('input', () => { ob.name = nameEl.value; $('obNext').disabled = !ob.name.trim(); }); nameEl.addEventListener('keydown', e => { if (e.key === 'Enter' && ob.name.trim()) { ob.step++; renderOnboarding(); } }); }
+}
+$('obPanel').addEventListener('change', e => {
+  if (e.target.id === 'obAdult') ob.adult = e.target.checked;
+  if (e.target.id === 'obHealth') ob.health = e.target.checked;
+  const n = $('obNext'); if (n && ob.step === 2) n.disabled = !(ob.adult && ob.health);
+});
+$('obPanel').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'obNext') { ob.step++; renderOnboarding(); }
+  else if (b.id === 'obPrev') { ob.step--; renderOnboarding(); }
+  else if (b.id === 'obMinor') { ob.blocked = true; ob.adult = false; renderOnboarding(); }
+  else if (b.id === 'obBack') { ob.blocked = false; renderOnboarding(); }
+  else if (b.dataset.choice) { ob.preset = b.dataset.choice; document.querySelectorAll('.choice').forEach(c => c.setAttribute('aria-pressed', String(c === b))); }
+  else if (b.id === 'obFinish') {
+    b.disabled = true;
+    state.profile = { name: ob.name.trim().slice(0, 30), onboarded: true, since: Date.now() };
+    state.plan = PRESETS[ob.preset].rules(); state.planSaved = true;
+    try { await store.saveProfile(); await store.savePlan(); } catch (err) { toast('Speichern fehlgeschlagen, FastFlow läuft trotzdem'); }
+    $('onboard').hidden = true; showApp(); celebrate();
+    setTimeout(() => floSay(`Willkommen an Bord, ${state.profile.name}! Tipp mich an, wenn du mehr von mir hören willst. Ich hab immer was in meinem Notizbuch.`, { happy: true }), 500);
+  }
+});
+
+// ================= Steuerung =================
+function renderView(animate = true) {
+  if (!simulated) { now = new Date(); now.setSeconds(0, 0); }
+  const v = currentView();
+  document.querySelectorAll('.view-host').forEach(h => { h.hidden = h.dataset.view !== v; });
+  const host = document.querySelector(`.view-host[data-view="${v}"]`);
+  ringFromZero = animate;
+  host.innerHTML = { heute: viewHeute, plan: viewPlan, analyse: viewAnalyse, gewicht: viewGewicht, profil: viewProfil }[v]();
+  if (animate) { host.classList.remove('view'); void host.offsetWidth; host.classList.add('view'); }
+  document.querySelectorAll('.tabbar a').forEach(a => { if (a.dataset.tab === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  countUp(host);
+  if (v === 'heute') requestAnimationFrame(() => requestAnimationFrame(updateRing));
+  checkUnlocks();
+  updateSea();
+}
+function refresh() {
+  if (!state.ready) return;
+  if (!state.profile) { if (!$('app').hidden) showOnboarding(); return; }
+  if ($('app').hidden) { showApp(); return; }
+  const active = document.activeElement;
+  if (active && active.matches('input') && currentView() !== 'heute') return;
+  renderView(false);
+}
+function showOnboarding() {
+  $('app').hidden = true; $('tabbar').hidden = true; $('buddy').hidden = true;
+  Object.assign(ob, { step: 0, name: '', adult: false, health: false, preset: 'p16', blocked: false });
+  $('onboard').hidden = false; renderOnboarding();
+}
+function showApp() {
+  $('onboard').hidden = true; $('app').hidden = false; $('tabbar').hidden = false; $('buddy').hidden = false;
+  mountOtters(); renderView(); recordCompleted(); watchStage();
+  setTimeout(() => floNext(currentView(), true), 700);
+}
+function boot() {
+  state.ready = true;
+  const sp = $('splash'); sp.style.opacity = '0'; setTimeout(() => sp.remove(), 500);
+  if (state.profile) showApp(); else showOnboarding();
+}
+
+window.addEventListener('hashchange', () => { if (!state.profile) return; renderView(); floNext(currentView(), true); window.scrollTo({ top: 0, behavior: REDUCE ? 'auto' : 'smooth' }); });
+$('otterBtn').addEventListener('click', () => {
+  const o = $('otterBtn').querySelector('.otter');
+  if (o && !REDUCE) { o.classList.remove('happy'); void o.getBoundingClientRect(); o.classList.add('happy'); setTimeout(() => o.classList.remove('happy'), 2200); }
+  floNext(currentView());
+});
+$('bubble').addEventListener('click', () => floNext(currentView()));
+
+$('app').addEventListener('change', async e => {
+  const t = e.target;
+  if (t.dataset.k !== undefined) {
+    const i = +t.dataset.i, k = t.dataset.k;
+    if (k === 'enabled') state.plan[i].enabled = t.checked; else if (t.value) state.plan[i][k] = toM(t.value);
+    t.blur(); savePlanSoon(); renderView(false);
+    const hints = validate(state.plan); if (hints.length) floSay(`Mir ist was aufgefallen: ${hints[0].msg}`);
+  } else if (t.id === 'simInput' && t.value) { now = new Date(t.value); simulated = true; renderView(false); toast('Testzeit gesetzt'); }
+  else if (t.id === 'leadInput') { profilLead = Math.min(120, Math.max(5, Math.round(+t.value || 30))); t.blur(); renderView(false); }
+  else if (t.id === 'jokerInput') { state.jokers = Math.min(10, Math.max(0, Math.round(+t.value || 0))); t.blur(); savePlanSoon(); }
+});
+$('app').addEventListener('submit', async e => {
+  if (e.target.id !== 'weightForm') return;
+  e.preventDefault();
+  const d = $('wDate').value, kg = Math.round(parseFloat(String($('wKg').value).replace(',', '.')) * 10) / 10;
+  if (!d || !(kg >= 30 && kg <= 350)) { toast('Bitte ein Gewicht zwischen 30 und 350 kg eintragen'); return; }
+  const [y, m, dd] = d.split('-').map(Number);
+  try { await store.putWeight({ id: 'w_' + d, date: new Date(y, m - 1, dd, 8).getTime(), kg }); document.activeElement?.blur(); toast('Gewicht eingetragen'); renderView(false); floNext('gewicht', true); }
+  catch (err) { toast('Gewicht nicht gespeichert'); }
+});
+$('app').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.preset) { state.plan = PRESETS[b.dataset.preset].rules(); savePlanSoon(); renderView(false); floSay(`Neuer Rhythmus: ${PRESETS[b.dataset.preset].title}. Ich hab mitgeschrieben!`); }
+  else if (b.dataset.stage) { bodyPick = +b.dataset.stage; renderView(false); const st = BODY[bodyPick]; floSay(`${st.title}: ${st.what.split('. ')[0]}.`); }
+  else if (b.dataset.period) { analysePeriod = b.dataset.period; renderView(false); floNext('analyse', true); }
+  else if (b.dataset.step) { now = new Date(now.getTime() + (+b.dataset.step) * 60000); simulated = true; renderView(false); toast('Testzeit: ' + DAYS[dayIdx(now)] + ' ' + hhmm(now)); }
+  else if (b.id === 'simNow') { simulated = false; renderView(false); toast('Echte Zeit'); }
+  else if (b.id === 'endEarly') { b.hidden = true; $('endConfirm').hidden = false; }
+  else if (b.id === 'endNo') { $('endConfirm').hidden = true; $('endEarly').hidden = false; }
+  else if (b.id === 'endYes') {
+    const snap = resolve(new Date(), state.plan);
+    if (snap && snap.mode === 'fasting') {
+      const real = Date.now();
+      await store.putSession({ id: 's_' + snap.start.getTime(), start: snap.start.getTime(), plannedEnd: snap.end.getTime(), actualEnd: real });
+      renderView(false);
+      floSay(`Notiert: nach ${hoursText(Math.floor((real - snap.start) / 60000))} beendet. Jede Ebbe zählt – die nächste kommt bestimmt.`);
+    }
+  }
+  else if (b.dataset.act === 'early' || b.dataset.act === 'reset') {
+    const s = state.sessions.find(x => x.id === b.dataset.id); if (!s) return;
+    let actualEnd = null;
+    if (b.dataset.act === 'early') { const v = $('ae_' + s.id).value; if (!v) return; actualEnd = Math.min(Math.max(new Date(v).getTime(), s.start), s.plannedEnd); if (actualEnd >= s.plannedEnd) actualEnd = null; }
+    await store.putSession({ ...s, actualEnd }); toast('Gespeichert'); renderView(false);
+  }
+  else if (b.dataset.act === 'delw') { await store.remove(b.dataset.id); toast('Eintrag gelöscht'); renderView(false); }
+  else if (b.id === 'demoBtn') {
+    const real = new Date(); let n = 0;
+    for (const w of fastingWindows(addDays(real, -14), real, state.plan)) {
+      n++; await store.putSession({ id: 's_' + w.start.getTime(), start: w.start.getTime(), plannedEnd: w.end.getTime(), actualEnd: n % 5 === 0 ? w.end.getTime() - 3 * 3600000 : null });
+    }
+    for (let k = 14; k >= 0; k--) { const d = addDays(real, -k); await store.putWeight({ id: 'w_' + toDateInput(d), date: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 8).getTime(), kg: Math.round((84 - (14 - k) * 0.15 + Math.sin(k * 1.7) * 0.6) * 10) / 10 }); }
+    toast('Beispieldaten geladen'); renderView(false); celebrate(); floNext('analyse', true);
+  }
+  else if (b.id === 'clearBtn') { $('clearConfirm').hidden = false; }
+  else if (b.id === 'clearNo') { $('clearConfirm').hidden = true; }
+  else if (b.id === 'clearYes') {
+    for (const id of [...state.sessions.map(s => s.id), ...state.weights.map(w => w.id)]) { try { await store.remove(id); } catch (err) {} }
+    toast('Verlauf gelöscht'); renderView(false);
+  }
+  else if (b.id === 'saveName') {
+    const v = $('nameInput').value.trim().slice(0, 30); if (!v) { toast('Bitte einen Namen eingeben'); return; }
+    state.profile.name = v; await store.saveProfile(); toast('Name gespeichert'); floSay(`Freut mich, ${v}! Hab's sofort in mein Notizbuch geschrieben.`, { happy: true });
+  }
+  else if (b.id === 'resetAll') { $('resetConfirm').hidden = false; }
+  else if (b.id === 'resetNo') { $('resetConfirm').hidden = true; }
+  else if (b.id === 'resetYes') {
+    for (const id of [...state.sessions.map(s => s.id), ...state.weights.map(w => w.id), 'plan', 'profile']) { try { await store.remove(id); } catch (err) {} }
+    Object.assign(state, { profile: null, planSaved: false, sessions: [], weights: [], plan: PRESETS.p16.rules() });
+    location.hash = '#heute'; showOnboarding();
+  }
+});
+
+setInterval(() => { if (!state.profile || $('app').hidden) return; if (!simulated) now = new Date(); if (currentView() === 'heute') updateRing(); }, 1000);
+setInterval(() => { if (state.profile && !simulated) { now = new Date(); now.setSeconds(0, 0); updateSea(); recordCompleted(); watchStage(); if (currentView() === 'heute') renderView(false); } }, 60000);
+
+mountOtters();
+initSea();
+store.init();
+</script>
